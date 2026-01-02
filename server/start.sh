@@ -27,4 +27,4 @@ npx prisma generate
 
 # Start the server
 echo "🎯 Starting server..."
-node dist/index.js
+node dist/src/index.js
