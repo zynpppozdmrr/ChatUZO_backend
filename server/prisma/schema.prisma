@@ -104,6 +104,8 @@ model Room {
   apiKey         String   @unique @default(cuid()) 
   // Allowed Domains: CORS güvenliği için izin verilen domain listesi
   allowedDomains String[]
+  // Password for private rooms (hashed)
+  passwordHash   String?
 
   // Room owner is a normal user (who created the room)
   ownerId String @db.Uuid

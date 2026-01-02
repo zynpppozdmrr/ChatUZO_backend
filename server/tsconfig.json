@@ -6,13 +6,9 @@
         "strict": true,
         "esModuleInterop": true,
         "outDir": "./dist",
-        "rootDir": "./src",
-        "sourceMap": true,
-        "declaration": true,
-        "skipLibCheck": true,
-        "forceConsistentCasingInFileNames": true
+
+      
         //"ignoreDeprecations": "6.0"
     },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "dist"]
+
 }

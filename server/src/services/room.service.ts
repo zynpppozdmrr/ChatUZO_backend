@@ -49,6 +49,7 @@ export const createRoom = async (ownerId: string, data: CreateRoomDto) => {
       roomPlanId: roomPlanId,
       uiSettings: uiSettings as any,
       logicConfig: logicConfig as any,
+      passwordHash,
     },
     select: {
       id: true,
@@ -221,7 +222,7 @@ export const updateRoom = async (roomId: string, userId: string, isAdmin: boolea
     data: {
       name: data.name,
       isPrivate: data.isPrivate,
-      password: passwordHash,
+      passwordHash,
       maxUsers: data.maxUsers,
       allowedDomains: data.allowedDomains,
       uiSettings: data.uiSettings as any,
