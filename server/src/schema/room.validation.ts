@@ -22,3 +22,16 @@ export const CreateRoomSchema = z.object({
 });
 
 export type CreateRoomInput = z.infer<typeof CreateRoomSchema>;
+
+// Update Room Schema (tüm alanlar opsiyonel)
+export const UpdateRoomSchema = z.object({
+  name: z.string().min(2, "Oda adı çok kısa").max(100).optional(),
+  isPrivate: z.boolean().optional(),
+  password: z.string().optional(),
+  maxUsers: z.number().int().positive().optional(),
+  allowedDomains: z.array(z.string().url("Geçersiz domain formatı")).min(1).optional(),
+  uiSettings: UISettingsSchema.optional(),
+  logicConfig: LogicConfigSchema.optional(),
+});
+
+export type UpdateRoomInput = z.infer<typeof UpdateRoomSchema>;

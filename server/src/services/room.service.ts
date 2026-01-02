@@ -176,3 +176,108 @@ export const getRoomByApiKey = async (apiKey: string) => {
 
   return room;
 };
+
+// Oda güncelle (sadece owner veya admin)
+export const updateRoom = async (roomId: string, userId: string, isAdmin: boolean, data: any) => {
+  // 1. Oda kontrolü
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    select: {
+      id: true,
+      ownerId: true,
+      roomPlanId: true,
+    }
+  });
+
+  if (!room) {
+    throw new Error('Oda bulunamadı.');
+  }
+
+  // 2. Yetki kontrolü (sadece owner veya admin)
+  if (room.ownerId !== userId && !isAdmin) {
+    throw new Error('Bu odayı güncelleme yetkiniz yok.');
+  }
+
+  // 3. maxUsers güncelleniyorsa plan kontrolü
+  if (data.maxUsers) {
+    const plan = await prisma.roomPlan.findUnique({
+      where: { id: room.roomPlanId! }
+    });
+
+    if (plan && data.maxUsers > plan.maxUsers) {
+      throw new Error(`Plan maksimum ${plan.maxUsers} kullanıcıyı desteklemektedir.`);
+    }
+  }
+
+  // 4. Şifre güncelleniyorsa hash'le
+  let passwordHash: string | undefined;
+  if (data.password) {
+    passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
+  }
+
+  // 5. Güncelleme
+  const updatedRoom = await prisma.room.update({
+    where: { id: roomId },
+    data: {
+      name: data.name,
+      isPrivate: data.isPrivate,
+      password: passwordHash,
+      maxUsers: data.maxUsers,
+      allowedDomains: data.allowedDomains,
+      uiSettings: data.uiSettings as any,
+      logicConfig: data.logicConfig as any,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      apiKey: true,
+      isPrivate: true,
+      maxUsers: true,
+      allowedDomains: true,
+      uiSettings: true,
+      logicConfig: true,
+      updatedAt: true,
+    }
+  });
+
+  return updatedRoom;
+};
+
+// Oda sil (sadece owner veya admin)
+export const deleteRoom = async (roomId: string, userId: string, isAdmin: boolean) => {
+  // 1. Oda kontrolü
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    include: {
+      _count: {
+        select: {
+          messages: true,
+          participants: true,
+        }
+      }
+    }
+  });
+
+  if (!room) {
+    throw new Error('Oda bulunamadı.');
+  }
+
+  // 2. Yetki kontrolü (sadece owner veya admin)
+  if (room.ownerId !== userId && !isAdmin) {
+    throw new Error('Bu odayı silme yetkiniz yok.');
+  }
+
+  // 3. Oda sil (cascade ile participants ve messages de silinir)
+  await prisma.room.delete({
+    where: { id: roomId }
+  });
+
+  return { 
+    message: 'Oda başarıyla silindi.',
+    deletedCounts: {
+      messages: room._count.messages,
+      participants: room._count.participants,
+    }
+  };
+};

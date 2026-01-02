@@ -233,6 +233,80 @@
 						"description": "Şifre korumalı özel oda oluşturur. Authentication gereklidir."
 					},
 					"response": []
+				},
+				{
+					"name": "Update Room (Owner/Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Room Name\",\n  \"isPrivate\": true,\n  \"password\": \"NewPassword123\",\n  \"maxUsers\": 100,\n  \"allowedDomains\": [\"https://newdomain.com\"],\n  \"uiSettings\": {\n    \"theme\": \"light\",\n    \"primaryColor\": \"#10b981\",\n    \"bgType\": \"gradient\",\n    \"bgValue\": \"linear-gradient(135deg, #667eea 0%, #764ba2 100%)\",\n    \"bubbleStyle\": \"modern\",\n    \"fontSettings\": {\n      \"family\": \"Roboto\",\n      \"baseSize\": 16,\n      \"weight\": \"bold\"\n    },\n    \"headerTitle\": \"Updated Room Title\",\n    \"showBranding\": false\n  },\n  \"logicConfig\": {\n    \"slowMode\": 5,\n    \"allowGifs\": false,\n    \"profanityFilter\": true,\n    \"guestAccess\": false,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"Updated sticky message\",\n    \"historyRetentionDays\": 90\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{room_id}}",
+									"description": "Room UUID"
+								}
+							]
+						},
+						"description": "Oda bilgilerini günceller. Tüm alanlar opsiyoneldir. Sadece oda sahibi veya ADMIN güncelleyebilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Room (Owner/Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{room_id}}",
+									"description": "Room UUID"
+								}
+							]
+						},
+						"description": "Odayı siler. Bu işlem cascade delete yapar (participants ve messages de silinir). Sadece oda sahibi veya ADMIN silebilir."
+					},
+					"response": []
 				}
 			],
 			"description": "Room management endpoints"
