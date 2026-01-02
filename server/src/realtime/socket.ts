@@ -1,25 +1,32 @@
-import { Server, Socket } from 'socket.io';
-import { MessageData } from '../types/chat.js';
-import { socketAuthMiddleware } from './middlewares/auth.middleware.js';
-import type { ClientToServerEvents, ServerToClientEvents } from "../types/socket.js";
+import { Server } from "socket.io";
+import { socketAuthMiddleware } from "./middlewares/auth.middleware.js";
+import { ensureUserInRoom } from "../services/roomAccess.service.js";
+import type { ClientToServerEvents, ServerToClientEvents } from "../types/Realtime/socket.js";
 
 export const setupSocketIO = (io: Server<ClientToServerEvents, ServerToClientEvents>) => {
-    io.use(socketAuthMiddleware);
+  // GEÇICI: Test için auth devre dışı
+  // io.use(socketAuthMiddleware);
 
-    io.on("connection", (socket: Socket) => {
-        console.log(`User Connected: ${socket.id}`);
+  io.on("connection", (socket) => {
+    const user = socket.data.user;
+    console.log(`connected socket=${socket.id} userId=${user?.userId}`);
 
-        socket.on('room', (data: string) => {
-            socket.join(data);
-            console.log(`User ${socket.id} joined room: ${data}`);
-        });
+    socket.on("join_room", async ({ roomId }, ack) => {
+      try {
+        if (!user?.userId) return ack?.({ ok: false, error: "UNAUTHORIZED" });
 
-        socket.on('message', (data: MessageData) => {
-            socket.to(data.room).emit('messageReturn', data);
-        });
+        const access = await ensureUserInRoom(user.userId, roomId);
+        if (!access.ok) return ack?.({ ok: false, error: access.error });
 
-        socket.on('disconnect', () => {
-            console.log("User Disconnected", socket.id);
-        });
+        socket.join(roomId);
+        ack?.({ ok: true });
+      } catch {
+        ack?.({ ok: false, error: "JOIN_ROOM_FAILED" });
+      }
     });
+
+    socket.on("leave_room", ({ roomId }) => {
+      socket.leave(roomId);
+    });
+  });
 };
