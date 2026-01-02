@@ -61,8 +61,10 @@ model User {
   id        String       @id @default(uuid()) @db.Uuid
   email     String       @unique
   username  String       @unique
-  password  String
+  passwordHash String
   birthdate DateTime
+  avatarUrl String?
+  isGuest   Boolean      @default(false)
   status    UserStatus   @default(ACTIVE)
 
   // platform-level role (admin = system owners)

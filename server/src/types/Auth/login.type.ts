@@ -7,5 +7,5 @@ export interface LoginRequestDto {
 
 export interface LoginResponse {
   accessToken: string;  // JWT Token
-  user: AuthenticatedUser;
+  user: AuthenticatedUser; // Giriş yapan kullanıcı bilgileri
 }
