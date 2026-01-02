@@ -84,7 +84,29 @@ The user moves to the `Chat` component (`client/src/components/Chat.tsx`).
 | `client/src/components/Room.tsx` | The "Entrance". Captures user info and tells the server which room to put the socket in. |
 | `client/src/components/Chat.tsx` | The "Interface". Handles the UI for listing messages and the logic for sending/receiving them. |
 
-## 5. Potential Next Steps
+## 5. Deployment
+
+### Railway + Neon Database
+
+Bu proje Railway'e deploy edilebilir durumda. Detaylı deployment rehberi için:
+
+📖 **[RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)** dosyasına bakın.
+
+**Kısa Özet**:
+- ✅ Dockerfile hazır (multi-stage production build)
+- ✅ Environment variables ayarlanmış (.env.example)
+- ✅ Neon PostgreSQL database kullanılıyor
+- ✅ Prisma migrations otomatik çalışıyor
+- ✅ CORS production için yapılandırılmış
+
+**Gerekli Environment Variables**:
+```env
+DATABASE_URL=postgresql://user:pass@ep-xxx.neon.tech/dbname?sslmode=require
+JWT_SECRET=your-secret-min-32-chars
+CLIENT_ORIGIN=https://your-frontend-url.com
+```
+
+## 6. Potential Next Steps
 To take this project further as you requested, consider these improvements:
 1.  **Database Storage**: Currently, messages are lost if you refresh. You can use Prisma to save messages to the database in the `socket.on('message')` block.
 2.  **User List**: Add a sidebar showing who is currently in the room.
