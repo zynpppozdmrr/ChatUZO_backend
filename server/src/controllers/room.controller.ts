@@ -1,7 +1,7 @@
 //Room CRUD, Joining
 import type { Request, Response } from 'express';
-import type { CreateRoomInput } from '../schema/room.validation.js';
-import { createRoom, getRoomBySlug, getUserRooms, getRoomByApiKey } from '../services/room.service.js';
+import type { CreateRoomInput, UpdateRoomInput } from '../schema/room.validation.js';
+import { createRoom, getRoomBySlug, getUserRooms, getRoomByApiKey, updateRoom, deleteRoom } from '../services/room.service.js';
 import { getRoomMessages } from '../services/message.service.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 // Authenticated request type (JWT middleware sonrası)
@@ -117,5 +117,78 @@ export const getRoomMessagesController = async (req: AuthenticatedRequest, res: 
   } catch (error) {
     console.error('Get room messages error:', error);
     res.status(500).json({ message: 'Mesajlar alınırken bir hata oluştu.' });
+  }
+};
+
+// Oda güncelle (Owner veya Admin)
+export const updateRoomController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    const isAdmin = req.user?.platformRole === 'ADMIN';
+    
+    if (!userId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { id } = req.params;
+    const validatedData = req.body as UpdateRoomInput;
+
+    const updatedRoom = await updateRoom(id, userId, isAdmin, validatedData);
+
+    res.status(200).json({
+      message: 'Oda başarıyla güncellendi.',
+      room: updatedRoom
+    });
+  } catch (error: any) {
+    if (error.message === 'Oda bulunamadı.') {
+      res.status(404).json({ message: error.message });
+      return;
+    }
+    
+    if (error.message === 'Bu odayı güncelleme yetkiniz yok.') {
+      res.status(403).json({ message: error.message });
+      return;
+    }
+
+    if (error.message) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+
+    console.error('Update room error:', error);
+    res.status(500).json({ message: 'Oda güncellenirken bir hata oluştu.' });
+  }
+};
+
+// Oda sil (Owner veya Admin)
+export const deleteRoomController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    const isAdmin = req.user?.platformRole === 'ADMIN';
+    
+    if (!userId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { id } = req.params;
+
+    const result = await deleteRoom(id, userId, isAdmin);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    if (error.message === 'Oda bulunamadı.') {
+      res.status(404).json({ message: error.message });
+      return;
+    }
+    
+    if (error.message === 'Bu odayı silme yetkiniz yok.') {
+      res.status(403).json({ message: error.message });
+      return;
+    }
+
+    console.error('Delete room error:', error);
+    res.status(500).json({ message: 'Oda silinirken bir hata oluştu.' });
   }
 };

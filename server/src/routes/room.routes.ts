@@ -1,9 +1,9 @@
 //   api/rooms/*
 import express from 'express';
-import { createRoomController, getRoomController, getMyRoomsController, getRoomByApiKeyController, getRoomMessagesController } from '../controllers/room.controller.js';
+import { createRoomController, getRoomController, getMyRoomsController, getRoomByApiKeyController, getRoomMessagesController, updateRoomController, deleteRoomController } from '../controllers/room.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
-import { CreateRoomSchema } from '../schema/room.validation.js';
+import { CreateRoomSchema, UpdateRoomSchema } from '../schema/room.validation.js';
 
 const router = express.Router();
 
@@ -17,6 +17,12 @@ router.get('/my-rooms', authenticate, getMyRoomsController);
 
 // Oda mesajlarını getir (authentication gerekli)
 router.get('/:roomId/messages', authenticate, getRoomMessagesController);
+
+// Oda güncelle (owner veya admin)
+router.put('/:id', authenticate, validate(UpdateRoomSchema), updateRoomController);
+
+// Oda sil (owner veya admin)
+router.delete('/:id', authenticate, deleteRoomController);
 
 
 //PUBLIC ROUTES

@@ -449,6 +449,104 @@ Authorization: Bearer <your_jwt_token>
 
 ---
 
+### 5. Update Room (Owner or Admin)
+**Endpoint:** `PUT /api/rooms/:id`
+
+**Authentication:** ✅ Required (Bearer Token - Owner or Admin)
+
+**URL Parameters:**
+- `id` (UUID): Room ID
+
+**Request Body:**
+```json
+{
+  "name": "Updated Room Name",  // Optional
+  "isPrivate": true,  // Optional
+  "password": "NewPassword123",  // Optional
+  "maxUsers": 100,  // Optional
+  "allowedDomains": ["https://newdomain.com"],  // Optional
+  "uiSettings": {  // Optional
+    "theme": "light",
+    "primaryColor": "#10b981",
+    "bgType": "gradient",
+    "bgValue": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "bubbleStyle": "modern",
+    "fontSettings": {
+      "family": "Roboto",
+      "baseSize": 16,
+      "weight": "bold"
+    },
+    "headerTitle": "Updated Room Title",
+    "showBranding": false
+  },
+  "logicConfig": {  // Optional
+    "slowMode": 5,
+    "allowGifs": false,
+    "profanityFilter": true,
+    "guestAccess": false,
+    "showTyping": true,
+    "readReceipts": true,
+    "stickyMessage": "Updated sticky message",
+    "historyRetentionDays": 90
+  }
+}
+```
+
+**Note:** Tüm alanlar opsiyoneldir. Sadece güncellemek istediğiniz alanları gönderin.
+
+**Success Response (200):**
+```json
+{
+  "message": "Oda başarıyla güncellendi.",
+  "room": {
+    "id": "uuid-string",
+    "name": "Updated Room Name",
+    "slug": "test-chat-room",
+    "apiKey": "clxxxxxxxxxxxxxx",
+    "isPrivate": true,
+    "maxUsers": 100,
+    "allowedDomains": ["https://newdomain.com"],
+    "uiSettings": { ... },
+    "logicConfig": { ... },
+    "updatedAt": "2026-01-02T15:00:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+- `404`: Oda bulunamadı
+- `403`: Bu odayı güncelleme yetkiniz yok
+- `400`: Plan maksimum X kullanıcıyı desteklemektedir
+
+---
+
+### 6. Delete Room (Owner or Admin)
+**Endpoint:** `DELETE /api/rooms/:id`
+
+**Authentication:** ✅ Required (Bearer Token - Owner or Admin)
+
+**URL Parameters:**
+- `id` (UUID): Room ID
+
+**Description:** Odayı siler. Bu işlem cascade delete yapar, yani oda ile ilişkili tüm participants ve messages de silinir.
+
+**Success Response (200):**
+```json
+{
+  "message": "Oda başarıyla silindi.",
+  "deletedCounts": {
+    "messages": 320,
+    "participants": 15
+  }
+}
+```
+
+**Error Responses:**
+- `404`: Oda bulunamadı
+- `403`: Bu odayı silme yetkiniz yok
+
+---
+
 ## 📁 Room Plan Endpoints
 
 ### 1. Get All Plans
