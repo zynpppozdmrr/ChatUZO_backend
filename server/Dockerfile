@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy all necessary files for build
 COPY package*.json ./
 COPY tsconfig.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma/
 COPY src ./src
 COPY start.sh ./start.sh
@@ -29,6 +30,7 @@ ENV NODE_ENV=production
 
 # Copy package files
 COPY package*.json ./
+COPY prisma.config.ts ./
 COPY prisma ./prisma/
 
 # Install only production dependencies
