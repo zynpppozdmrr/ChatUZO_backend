@@ -34,10 +34,11 @@ COPY prisma ./prisma/
 # Install only production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
+# Generate Prisma Client in production stage
+RUN npx prisma generate
+
 # Copy built files from builder stage
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/start.sh ./start.sh
 
 # Make start script executable
