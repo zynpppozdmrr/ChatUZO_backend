@@ -3,7 +3,7 @@ export interface RegisterRequestDto {
   username: string;
   password: string;
   birthdate: Date | string; // ISO string formatında gelebilir
-  avatarUrl?: string;       // Opsiyonel profil resmi
+  avatarUrl?: string | null; // Opsiyonel profil resmi
 }
 
 export interface RegisterResponse {

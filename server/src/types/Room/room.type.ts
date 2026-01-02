@@ -10,7 +10,7 @@ export interface CreateRoomDto {
   allowedDomains: string[];  // En az 1 tane zorunlu
   uiSettings: UISettings;
   logicConfig: LogicConfig;
-  planId: string;            // Seçilen RoomPlan ID'si
+  roomPlanId: string;        // Seçilen RoomPlan ID'si (schema ile uyumlu)
 }
 
 export interface RoomHandshakeResponse {
