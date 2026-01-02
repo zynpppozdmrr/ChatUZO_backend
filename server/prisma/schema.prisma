@@ -47,6 +47,12 @@ enum RoomPlanType {
   PLATINUM
 }
 
+enum MessageType {
+  TEXT
+  GIF
+  SYSTEM
+}
+
 // --------------------------------------
 // Models
 // --------------------------------------
@@ -77,6 +83,9 @@ model RoomPlan {
   maxUsers      Int
   retentionDays Int // message retention in days
 
+  // Plana özel özellik kısıtlamaları (Opsiyonel: JSON olarak da tutulabilir)
+  features      Json?        // { "canUseGifs": true, "customFonts": true, "whiteLabel": false }
+
   rooms Room[]
 
   createdAt DateTime @default(now())
@@ -87,6 +96,12 @@ model Room {
   id        String  @id @default(uuid()) @db.Uuid
   name      String
   isPrivate Boolean @default(false)
+  slug      String  @unique // URL dostu isim
+  // GÜVENLİK VE ENTEGRASYON
+  // API Key: Müşterinin sitesine entegre ederken kullanacağı anahtar
+  apiKey         String   @unique @default(cuid()) 
+  // Allowed Domains: CORS güvenliği için izin verilen domain listesi
+  allowedDomains String[]
 
   // Room owner is a normal user (who created the room)
   ownerId String @db.Uuid
@@ -95,6 +110,12 @@ model Room {
   // Room configuration
   roomPlanId String?   @db.Uuid
   roomPlan   RoomPlan? @relation(fields: [roomPlanId], references: [id])
+
+  // KONFİGÜRASYONLAR (JSONB)
+  // uiSettings: theme, primaryColor, fontSettings (family, size, weight), bubbleStyle
+  uiSettings  Json
+  // logicConfig: slowMode, allowGifs, profanityFilter, guestAccess, stickyMessage
+  logicConfig Json
 
   maxUsers Int @default(50) // room-specific override (optional)
 
@@ -141,7 +162,11 @@ model RoomParticipant {
 model Message {
   id        String  @id @default(uuid()) @db.Uuid
   content   String
+  type      MessageType @default(TEXT)
   isDeleted Boolean @default(false)
+
+  // GIF veya başka ekler için
+  attachmentUrl String?
 
   roomId String @db.Uuid
   room   Room   @relation(fields: [roomId], references: [id])
