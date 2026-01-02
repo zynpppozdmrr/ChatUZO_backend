@@ -7,6 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 COPY tsconfig.json ./
+COPY start.sh ./start.sh
 
 # Install all dependencies (including dev dependencies for build)
 RUN npm ci
@@ -39,9 +40,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Copy start script
-COPY start.sh ./start.sh
+COPY --from=builder /app/start.sh ./start.sh
 
 # Make start script executable
 RUN chmod +x ./start.sh
