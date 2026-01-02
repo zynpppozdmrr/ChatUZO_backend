@@ -1,15 +1,6 @@
 import { prisma } from "../config/prisma.js";
 import { ensureUserInRoom } from "./roomAccess.service.js";
-
-export type MessageDTO = {
-  id: string;
-  roomId: string;
-  userId: string;
-  content: string;
-  createdAt: Date;
-  type: string;
-  isDeleted: boolean;
-};
+import type { MessageDTO } from "../types/Realtime/message.js";
 
 export async function createMessage(params: { userId: string; roomId: string; content: string }) {
   const { userId, roomId, content } = params;

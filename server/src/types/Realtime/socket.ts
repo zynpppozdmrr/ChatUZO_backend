@@ -13,6 +13,8 @@ export interface ClientToServerEvents {
     data: { roomId: string; content: string },
     ack?: (res: { ok: boolean; error?: string; messageId?: string }) => void
   ) => void;
+  typing_start: (data: { roomId: string }) => void;
+  typing_stop: (data: { roomId: string }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -25,4 +27,9 @@ export interface ServerToClientEvents {
     type: string;
     isDeleted: boolean;
   }) => void;
+  user_typing: (data: { userId: string; username?: string; roomId: string }) => void;
+  user_stopped_typing: (data: { userId: string; roomId: string }) => void;
+  user_joined: (data: { userId: string; username?: string; roomId: string }) => void;
+  user_left: (data: { userId: string; roomId: string }) => void;
+  online_users: (data: { roomId: string; users: Array<{ userId: string; username?: string }> }) => void;
 }

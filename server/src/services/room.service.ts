@@ -43,7 +43,6 @@ export const createRoom = async (ownerId: string, data: CreateRoomDto) => {
       name,
       slug,
       isPrivate,
-      password: passwordHash,
       maxUsers,
       allowedDomains,
       ownerId,
