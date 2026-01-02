@@ -1,6 +1,6 @@
 //   api/rooms/*
 import express from 'express';
-import { createRoomController, getRoomController, getMyRoomsController, getRoomByApiKeyController } from '../controllers/room.controller.js';
+import { createRoomController, getRoomController, getMyRoomsController, getRoomByApiKeyController, getRoomMessagesController } from '../controllers/room.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { CreateRoomSchema } from '../schema/room.validation.js';
@@ -14,6 +14,9 @@ router.post('/', authenticate, validate(CreateRoomSchema), createRoomController)
 
 // Kullanıcının odalarını listele (authentication gerekli)
 router.get('/my-rooms', authenticate, getMyRoomsController);
+
+// Oda mesajlarını getir (authentication gerekli)
+router.get('/:roomId/messages', authenticate, getRoomMessagesController);
 
 
 //PUBLIC ROUTES

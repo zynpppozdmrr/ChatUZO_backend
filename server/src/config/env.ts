@@ -9,7 +9,7 @@ function requireEnv(key: string): string {
 }
 
 export const env = {
-  PORT: Number(process.env.PORT ?? 5000),
+  PORT: Number(process.env.PORT ?? 3000),
   CLIENT_ORIGIN: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
 
   // DATABASEURL YOKSA BU SERVİS ÇALIŞMASIN. EĞER BİRİ .ENV İ UNUTURSA UYGULAMA BAŞLARKEN PATLAR.

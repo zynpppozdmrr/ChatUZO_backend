@@ -16,5 +16,13 @@ export interface ClientToServerEvents {
 }
 
 export interface ServerToClientEvents {
-  receive_message: (data: any) => void; // sonra Message DTO yaparız
+  receive_message: (data: {
+    id: string;
+    roomId: string;
+    userId: string;
+    content: string;
+    createdAt: Date;
+    type: string;
+    isDeleted: boolean;
+  }) => void;
 }

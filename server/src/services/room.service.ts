@@ -65,6 +65,16 @@ export const createRoom = async (ownerId: string, data: CreateRoomDto) => {
     }
   });
 
+  // 6. Owner'ı otomatik OWNER rol ile participant olarak ekle
+  await prisma.roomParticipant.create({
+    data: {
+      roomId: room.id,
+      userId: ownerId,
+      role: 'OWNER',
+      status: 'ACTIVE',
+    }
+  });
+
   return room;
 };
 

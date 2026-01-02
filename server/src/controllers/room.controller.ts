@@ -2,6 +2,7 @@
 import type { Request, Response } from 'express';
 import type { CreateRoomInput } from '../schema/room.validation.js';
 import { createRoom, getRoomBySlug, getUserRooms, getRoomByApiKey } from '../services/room.service.js';
+import { getRoomMessages } from '../services/message.service.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 // Authenticated request type (JWT middleware sonrası)
 
@@ -90,5 +91,31 @@ export const getRoomByApiKeyController = async (req: Request, res: Response): Pr
 
     console.error('Get room by API key error:', error);
     res.status(500).json({ message: 'Oda bilgisi alınırken bir hata oluştu.' });
+  }
+};
+
+export const getRoomMessagesController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { roomId } = req.params;
+    const limit = Number(req.query.limit ?? 20);
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+
+    const result = await getRoomMessages({ userId, roomId, limit, cursor });
+    if (!result.ok) {
+      const status = result.error === 'ROOM_ACCESS_DENIED' || result.error === 'ROOM_BANNED' ? 403 : 404;
+      res.status(status).json({ message: result.error });
+      return;
+    }
+
+    res.status(200).json({ messages: result.messages, nextCursor: result.nextCursor });
+  } catch (error) {
+    console.error('Get room messages error:', error);
+    res.status(500).json({ message: 'Mesajlar alınırken bir hata oluştu.' });
   }
 };
