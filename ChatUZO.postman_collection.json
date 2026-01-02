@@ -1,0 +1,760 @@
+{
+	"info": {
+		"_postman_id": "chatuzo-api-collection",
+		"name": "ChatUZO API",
+		"description": "ChatUZO SAAS Realtime Chat Room API Collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"test@example.com\",\n  \"username\": \"testuser\",\n  \"password\": \"Test1234\",\n  \"birthdate\": \"2000-01-01\",\n  \"avatarUrl\": \"https://i.pravatar.cc/150?img=1\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Yeni kullanıcı kaydı oluşturur"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"access_token\", jsonData.accessToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"identifier\": \"testuser\",\n  \"password\": \"Test1234\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Email veya username ile giriş yapar. Başarılı olursa JWT token döner ve otomatik olarak environment variable'a kaydedilir."
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints"
+		},
+		{
+			"name": "Rooms",
+			"item": [
+				{
+					"name": "Create Room",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Test Chat Room\",\n  \"slug\": \"test-chat-room\",\n  \"isPrivate\": false,\n  \"maxUsers\": 50,\n  \"allowedDomains\": [\"https://example.com\"],\n  \"uiSettings\": {\n    \"theme\": \"dark\",\n    \"primaryColor\": \"#6366f1\",\n    \"bgType\": \"color\",\n    \"bgValue\": \"#1f2937\",\n    \"bubbleStyle\": \"rounded\",\n    \"fontSettings\": {\n      \"family\": \"Inter\",\n      \"baseSize\": 14,\n      \"weight\": \"medium\"\n    },\n    \"headerTitle\": \"Welcome to Test Room\",\n    \"showBranding\": true\n  },\n  \"logicConfig\": {\n    \"slowMode\": 0,\n    \"allowGifs\": true,\n    \"profanityFilter\": false,\n    \"guestAccess\": true,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"Welcome! Please be respectful.\",\n    \"historyRetentionDays\": 30\n  },\n  \"roomPlanId\": \"{{plan_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms"
+							]
+						},
+						"description": "Yeni oda oluşturur. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Rooms",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/my-rooms",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								"my-rooms"
+							]
+						},
+						"description": "Kullanıcının oluşturduğu tüm odaları listeler. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room by Slug",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:slug",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":slug"
+							],
+							"variable": [
+								{
+									"key": "slug",
+									"value": "test-chat-room",
+									"description": "Oda slug değeri"
+								}
+							]
+						},
+						"description": "Slug ile oda bilgilerini getirir. Public endpoint, authentication gerekmez."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room by API Key (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/api-key/:apiKey",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								"api-key",
+								":apiKey"
+							],
+							"variable": [
+								{
+									"key": "apiKey",
+									"value": "{{room_api_key}}",
+									"description": "Oda API Key (oda oluşturulurken otomatik oluşturulur)"
+								}
+							]
+						},
+						"description": "API Key ile oda bilgilerini getirir. Website entegrasyonu için kullanılır. Public endpoint, authentication gerekmez. Oda oluşturulurken otomatik olarak bir API key generate edilir ve bu key ile odayı dış sitelere entegre edebilirsiniz."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Private Room",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Private VIP Room\",\n  \"slug\": \"private-vip-room\",\n  \"isPrivate\": true,\n  \"password\": \"SecretPass123\",\n  \"maxUsers\": 20,\n  \"allowedDomains\": [\"https://vip.example.com\"],\n  \"uiSettings\": {\n    \"theme\": \"dark\",\n    \"primaryColor\": \"#f59e0b\",\n    \"bgType\": \"gradient\",\n    \"bgValue\": \"linear-gradient(135deg, #667eea 0%, #764ba2 100%)\",\n    \"bubbleStyle\": \"modern\",\n    \"fontSettings\": {\n      \"family\": \"Roboto\",\n      \"baseSize\": 16,\n      \"weight\": \"bold\"\n    },\n    \"headerTitle\": \"VIP Members Only\",\n    \"showBranding\": false\n  },\n  \"logicConfig\": {\n    \"slowMode\": 5,\n    \"allowGifs\": false,\n    \"profanityFilter\": true,\n    \"guestAccess\": false,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"VIP Room - Invite Only\",\n    \"historyRetentionDays\": 90\n  },\n  \"roomPlanId\": \"{{plan_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms"
+							]
+						},
+						"description": "Şifre korumalı özel oda oluşturur. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Room (Owner/Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Room Name\",\n  \"isPrivate\": true,\n  \"password\": \"NewPassword123\",\n  \"maxUsers\": 100,\n  \"allowedDomains\": [\"https://newdomain.com\"],\n  \"uiSettings\": {\n    \"theme\": \"light\",\n    \"primaryColor\": \"#10b981\",\n    \"bgType\": \"gradient\",\n    \"bgValue\": \"linear-gradient(135deg, #667eea 0%, #764ba2 100%)\",\n    \"bubbleStyle\": \"modern\",\n    \"fontSettings\": {\n      \"family\": \"Roboto\",\n      \"baseSize\": 16,\n      \"weight\": \"bold\"\n    },\n    \"headerTitle\": \"Updated Room Title\",\n    \"showBranding\": false\n  },\n  \"logicConfig\": {\n    \"slowMode\": 5,\n    \"allowGifs\": false,\n    \"profanityFilter\": true,\n    \"guestAccess\": false,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"Updated sticky message\",\n    \"historyRetentionDays\": 90\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{room_id}}",
+									"description": "Room UUID"
+								}
+							]
+						},
+						"description": "Oda bilgilerini günceller. Tüm alanlar opsiyoneldir. Sadece oda sahibi veya ADMIN güncelleyebilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Room (Owner/Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{room_id}}",
+									"description": "Room UUID"
+								}
+							]
+						},
+						"description": "Odayı siler. Bu işlem cascade delete yapar (participants ve messages de silinir). Sadece oda sahibi veya ADMIN silebilir."
+					},
+					"response": []
+				}
+			],
+			"description": "Room management endpoints"
+		},
+		{
+			"name": "Room Plans",
+			"item": [
+				{
+					"name": "Get All Plans",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/room-plans",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"room-plans"
+							]
+						},
+						"description": "Tüm room planlarını listeler. Public endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Plan by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/room-plans/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"room-plans",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{plan_id}}",
+									"description": "Plan UUID"
+								}
+							]
+						},
+						"description": "Plan detaylarını getirir. Public endpoint."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Plan (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"GOLD\",\n  \"maxUsers\": 100,\n  \"retentionDays\": 90,\n  \"features\": {\n    \"canUseGifs\": true,\n    \"customFonts\": true,\n    \"whiteLabel\": false,\n    \"customDomains\": 3,\n    \"apiAccess\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/room-plans",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"room-plans"
+							]
+						},
+						"description": "Yeni plan oluşturur. ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Update Plan (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"maxUsers\": 150,\n  \"retentionDays\": 120,\n  \"features\": {\n    \"canUseGifs\": true,\n    \"customFonts\": true,\n    \"whiteLabel\": true,\n    \"customDomains\": 5,\n    \"apiAccess\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/room-plans/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"room-plans",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{plan_id}}",
+									"description": "Plan UUID"
+								}
+							]
+						},
+						"description": "Planı günceller. ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Plan (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/room-plans/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"room-plans",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{plan_id}}",
+									"description": "Plan UUID"
+								}
+							]
+						},
+						"description": "Planı siler. Bu plana bağlı oda varsa hata döner. ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Create DEFAULT Plan (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"DEFAULT\",\n  \"maxUsers\": 50,\n  \"retentionDays\": 30,\n  \"features\": {\n    \"canUseGifs\": true,\n    \"customFonts\": false,\n    \"whiteLabel\": false,\n    \"customDomains\": 1,\n    \"apiAccess\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/room-plans",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"room-plans"
+							]
+						},
+						"description": "DEFAULT planı oluşturur. ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Create PLATINIUM Plan (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"PLATINIUM\",\n  \"maxUsers\": 500,\n  \"retentionDays\": 365,\n  \"features\": {\n    \"canUseGifs\": true,\n    \"customFonts\": true,\n    \"whiteLabel\": true,\n    \"customDomains\": 999,\n    \"apiAccess\": true\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/room-plans",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"room-plans"
+							]
+						},
+						"description": "PLATINIUM planı oluşturur. ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				}
+			],
+			"description": "Room Plan management endpoints (Admin operations require ADMIN role)"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "Kendi profil bilgilerini getirir. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Update My Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"newusername\",\n  \"avatarUrl\": \"https://i.pravatar.cc/150?img=5\",\n  \"birthdate\": \"2000-06-15T00:00:00.000Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "Kendi profil bilgilerini günceller. Tüm alanlar opsiyoneldir. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Tüm kullanıcıları listeler. ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{user_id}}",
+									"description": "User UUID"
+								}
+							]
+						},
+						"description": "Belirli bir kullanıcının bilgilerini getirir. Public endpoint, authentication gerekmez."
+					},
+					"response": []
+				},
+				{
+					"name": "Change User Role (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"platformRole\": \"ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/:id/role",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id",
+								"role"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{user_id}}",
+									"description": "User UUID"
+								}
+							]
+						},
+						"description": "Kullanıcının platform rolünü değiştirir (USER veya ADMIN). ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{user_id}}",
+									"description": "User UUID"
+								}
+							]
+						},
+						"description": "Kullanıcıyı siler. Kullanıcının sahip olduğu oda varsa silinemez. ADMIN veya kendi hesabını silmek için kullanılabilir."
+					},
+					"response": []
+				}
+			],
+			"description": "User profile management endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
