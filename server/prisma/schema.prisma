@@ -13,3 +13,144 @@ datasource db {
   provider = "postgresql"
 }
 
+
+// --------------------------------------
+// Enums
+// --------------------------------------
+
+enum PlatformRole {
+  USER   // normal kullanıcı
+  ADMIN  // sistemi yapan ekip (platform admin)
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum RoomParticipantRole {
+  OWNER
+  MODERATOR
+  MEMBER
+}
+
+enum ParticipantStatus {
+  ACTIVE
+  MUTED
+  BANNED
+}
+
+enum RoomPlanType {
+  BASIC
+  GOLD
+  PLATINUM
+}
+
+// --------------------------------------
+// Models
+// --------------------------------------
+
+model User {
+  id        String       @id @default(uuid()) @db.Uuid
+  email     String       @unique
+  username  String       @unique
+  password  String
+  birthdate DateTime
+  status    UserStatus   @default(ACTIVE)
+
+  // platform-level role (admin = system owners)
+  platformRole PlatformRole @default(USER)
+
+  // relations
+  ownedRooms        Room[]            @relation("RoomOwner")
+  roomParticipants  RoomParticipant[]
+  messages          Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RoomPlan {
+  id            String       @id @default(uuid()) @db.Uuid
+  name          RoomPlanType @unique
+  maxUsers      Int
+  retentionDays Int // message retention in days
+
+  rooms Room[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Room {
+  id        String  @id @default(uuid()) @db.Uuid
+  name      String
+  isPrivate Boolean @default(false)
+
+  // Room owner is a normal user (who created the room)
+  ownerId String @db.Uuid
+  owner   User   @relation("RoomOwner", fields: [ownerId], references: [id])
+
+  // Room configuration
+  roomPlanId String?   @db.Uuid
+  roomPlan   RoomPlan? @relation(fields: [roomPlanId], references: [id])
+
+  maxUsers Int @default(50) // room-specific override (optional)
+
+  participants RoomParticipant[]
+  messages     Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@unique([name, ownerId]) // optional: each user cannot create same room name twice
+}
+
+model RoomParticipant {
+  id     String @id @default(uuid()) @db.Uuid
+
+  roomId String @db.Uuid
+  room   Room   @relation(fields: [roomId], references: [id])
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  // room-level role (this is the key!)
+  role   RoomParticipantRole @default(MEMBER)
+
+  // room-level status (mute/ban inside this room)
+  status ParticipantStatus @default(ACTIVE)
+
+  /**
+   * Room owner decides moderator powers.
+   * You can store as JSON, e.g.
+   * { "canDeleteMessages": true, "canMuteUsers": true, "canKickUsers": false }
+   */
+  moderator_permissions Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roomId, userId]) // user can join room only once
+  @@index([roomId])
+  @@index([userId])
+}
+
+model Message {
+  id        String  @id @default(uuid()) @db.Uuid
+  content   String
+  isDeleted Boolean @default(false)
+
+  roomId String @db.Uuid
+  room   Room   @relation(fields: [roomId], references: [id])
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([roomId, createdAt])
+  @@index([userId, createdAt])
+}
