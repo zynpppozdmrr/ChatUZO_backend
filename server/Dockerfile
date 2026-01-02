@@ -40,6 +40,12 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
+# Copy start script
+COPY start.sh ./start.sh
+
+# Make start script executable
+RUN chmod +x ./start.sh
+
 # Expose port (Railway will override with PORT env variable)
 EXPOSE 3000
 
@@ -47,5 +53,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Run migrations and start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Run start script
+CMD ["./start.sh"]

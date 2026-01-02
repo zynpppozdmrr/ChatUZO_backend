@@ -4,3 +4,7 @@ node_modules
 .git
 .gitignore
 .vscode
+*.md
+coverage
+npm-debug.log
+.DS_Store
