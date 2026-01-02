@@ -14,7 +14,6 @@ export const env = {
 
   // DATABASEURL YOKSA BU SERVİS ÇALIŞMASIN. EĞER BİRİ .ENV İ UNUTURSA UYGULAMA BAŞLARKEN PATLAR.
   DATABASE_URL: requireEnv("DATABASE_URL"),
-
-
-
+  
+  JWT_SECRET: requireEnv("JWT_SECRET"),
 };
