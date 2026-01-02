@@ -42,9 +42,9 @@ enum ParticipantStatus {
 }
 
 enum RoomPlanType {
-  BASIC
+  DEFAULT
   GOLD
-  PLATINUM
+  PLATINIUM
 }
 
 enum MessageType {

@@ -16,7 +16,7 @@ const server = http.createServer(app);
 //Böylece client http://localhost:PORT üzerinden hem HTTP hem socket bağlantısı kurabiliyor.
 const io = new Server(server, {
     cors: {
-        origin: env.CLIENT_ORIGIN, //React dev server Vite ile genelde 5173 portunda çalısıyor. Burada 5173 ten gelen bağlantıya izin ver diyoruz. .env dosyasın ataşıdım.
+        origin: "*", //React dev server Vite ile genelde 5173 portunda çalısıyor. Burada 5173 ten gelen bağlantıya izin ver diyoruz. .env dosyasın ataşıdım.
         methods: ["GET", "POST"]
     }
 });
