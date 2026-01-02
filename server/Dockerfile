@@ -14,6 +14,9 @@ COPY start.sh ./start.sh
 # Install all dependencies (including dev dependencies for build)
 RUN npm ci
 
+# Set dummy DATABASE_URL for build time
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
 # Generate Prisma Client
 RUN npx prisma generate
 
@@ -35,6 +38,9 @@ COPY prisma ./prisma/
 
 # Install only production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
+
+# Set dummy DATABASE_URL for build time
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
 
 # Generate Prisma Client in production stage
 RUN npx prisma generate
