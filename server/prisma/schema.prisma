@@ -13,3 +13,52 @@ datasource db {
   provider = "postgresql"
 }
 
+// 1. Plan Tiplerini Tanımlayalım
+enum RoomPlan {
+  DEFAULT
+  PREMIUM
+  ENTERPRISE // İleride daha yüksek limitli bir paket için
+}
+
+model Room {
+  id              String   @id @default(uuid())
+  ownerId         String
+  //**** owner           User     @relation("RoomOwner", fields: [ownerId], references: [id])
+  
+  name            String
+  slug            String   @unique
+  apiKey          String   @unique @default(cuid())
+  allowedDomains  String[] 
+
+  // PLAN VE KONTROL
+  plan            RoomPlan @default(DEFAULT)
+  // Katılımcı sınırı plan seçildiğinde otomatik atanabilir veya manuel override edilebilir
+  maxParticipants Int      @default(20) // Default plan için örnek sınır: 20 kişi
+
+  // Ayarlar
+  // KOZMETİK AYARLAR (JSONB)
+  // İçerik: theme, primaryColor, bgType, bgValue, bubbleStyle, fontSettings (family, baseSize, weight)
+  uiSettings      Json     
+
+  // MANTIKSAL AYARLAR (JSONB)
+  // İçerik: slowMode, allowGifs, profanityFilter, guestAccess, showTyping, stickyMessage
+  logicConfig     Json     
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  //**** messages        Message[]
+  participants    RoomParticipant[]
+}
+
+model RoomParticipant {
+  userId    String
+  roomId    String
+ //**** user      User     @relation(fields: [userId], references: [id])
+  room      Room     @relation(fields: [roomId], references: [id])
+  
+  joinedAt  DateTime @default(now())
+  isMuted   Boolean  @default(false)
+
+  @@id([userId, roomId]) // Bir kullanıcı bir odaya bir kez kayıt olabilir
+}
