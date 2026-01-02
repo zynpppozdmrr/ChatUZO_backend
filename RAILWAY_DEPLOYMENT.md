@@ -47,6 +47,8 @@ Bu dokümanda ChatUZO backend servisinin Railway'e nasıl deploy edileceği adı
 4. ChatUZO_backend repository'nizi seçin
 5. "Deploy Now" butonuna tıklayın
 
+**Not**: Railway otomatik olarak Nixpacks (modern build sistem) kullanarak projenizi build edecek. Dockerfile'a gerek yok!
+
 ### 2. Environment Variables Ayarlama
 
 Backend service'inizi seçin ve "Variables" sekmesine gidin. Aşağıdaki environment variables'ları ekleyin:
@@ -109,6 +111,21 @@ railway run npx prisma migrate deploy
 4. Domain'inizi girin ve DNS ayarlarını yapın
 
 ## 🔧 Deployment Sonrası Yapılandırma
+
+### Build Sistemi: Nixpacks
+
+Railway otomatik olarak **Nixpacks** kullanarak build ediyor. Bu, Dockerfile'a gerek olmayan modern bir build sistem.
+
+**Nixpacks'in avantajları**:
+- ✅ Otomatik dependency detection
+- ✅ Node.js, npm, Prisma otomatik algılanıyor
+- ✅ `.railwayignore` ile gereksiz dosyaları exclude ediyor
+- ✅ Production-optimized imaj oluşturuyor
+
+**Build akışı**:
+1. `npm ci` - Dependencies yükleniyor
+2. `npm run build` - TypeScript compile ediliyor
+3. `npm start` - Server başlatılıyor (migration + app başlar)
 
 ### CORS Ayarları
 
