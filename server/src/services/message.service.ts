@@ -8,25 +8,27 @@ export async function createMessage(params: { userId: string; roomId: string; co
   const access = await ensureUserInRoom(userId, roomId);
   if (!access.ok) return { ok: false as const, error: access.error };
 
+  const resolvedRoomId = access.roomId;
+
   console.log(`[createMessage] Creating message in DB...`);
   const message = await prisma.message.create({
     data: {
       userId,
-      roomId,
+      roomId: resolvedRoomId,
       content,
     },
+    include: {
+      user: {
+        select: {
+          username: true,
+          avatarUrl: true
+        }
+      }
+    }
   });
   console.log(`[createMessage] ✅ Saved to DB! id=${message.id}`);
-  console.log(`[createMessage] 📄 Message:`, {
-    id: message.id,
-    userId: message.userId,
-    roomId: message.roomId,
-    content: message.content,
-    createdAt: message.createdAt,
-    type: message.type
-  });
 
-  const dto: MessageDTO = {
+  const dto: MessageDTO & { sender: any } = {
     id: message.id,
     roomId: message.roomId,
     userId: message.userId,
@@ -34,6 +36,7 @@ export async function createMessage(params: { userId: string; roomId: string; co
     createdAt: message.createdAt,
     type: message.type,
     isDeleted: message.isDeleted,
+    sender: message.user
   };
 
   return { ok: true as const, message: dto };
@@ -45,13 +48,23 @@ export async function getRoomMessages(params: { userId: string; roomId: string; 
   const access = await ensureUserInRoom(userId, roomId);
   if (!access.ok) return { ok: false as const, error: access.error };
 
+  const resolvedRoomId = access.roomId;
+
   const take = Math.min(Math.max(limit, 1), 100);
 
-  console.log(`[getRoomMessages] Fetching messages from DB for roomId=${roomId}`);
+  console.log(`[getRoomMessages] Fetching messages from DB for roomId=${resolvedRoomId}`);
   const messages = await prisma.message.findMany({
-    where: { roomId },
+    where: { roomId: resolvedRoomId },
     orderBy: { createdAt: "desc" },
     take: take + 1,
+    include: {
+      user: {
+        select: {
+          username: true,
+          avatarUrl: true
+        }
+      }
+    },
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
 
@@ -59,7 +72,7 @@ export async function getRoomMessages(params: { userId: string; roomId: string; 
   const items = hasMore ? messages.slice(0, take) : messages;
   const nextCursor = hasMore ? items[items.length - 1].id : null;
 
-  const dto: MessageDTO[] = items.map((m) => ({
+  const dto = items.map((m) => ({
     id: m.id,
     roomId: m.roomId,
     userId: m.userId,
@@ -67,6 +80,7 @@ export async function getRoomMessages(params: { userId: string; roomId: string; 
     createdAt: m.createdAt,
     type: m.type,
     isDeleted: m.isDeleted,
+    sender: m.user
   }));
 
   console.log(`[getRoomMessages] ✅ Fetched ${dto.length} messages from DB`);

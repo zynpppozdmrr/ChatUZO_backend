@@ -1,7 +1,7 @@
 //Room CRUD, Joining
 import type { Request, Response } from 'express';
 import type { CreateRoomInput, UpdateRoomInput } from '../schema/room.validation.js';
-import { createRoom, getRoomBySlug, getUserRooms, getRoomByApiKey, updateRoom, deleteRoom } from '../services/room.service.js';
+import { createRoom, getRoomBySlug, getUserRooms, getPublicRooms, getRoomByApiKey, updateRoom, deleteRoom } from '../services/room.service.js';
 import { getRoomMessages } from '../services/message.service.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 // Authenticated request type (JWT middleware sonrası)
@@ -10,7 +10,7 @@ import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 export const createRoomController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
-    
+
     if (!userId) {
       res.status(401).json({ message: 'Yetkilendirme gerekli.' });
       return;
@@ -56,7 +56,7 @@ export const getRoomController = async (req: Request, res: Response): Promise<vo
 export const getMyRoomsController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
-    
+
     if (!userId) {
       res.status(401).json({ message: 'Yetkilendirme gerekli.' });
       return;
@@ -71,6 +71,16 @@ export const getMyRoomsController = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
+export const getPublicRoomsController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const rooms = await getPublicRooms();
+    res.status(200).json({ rooms });
+  } catch (error: any) {
+    console.error('Get public rooms error:', error);
+    res.status(500).json({ message: 'Açık odalar listelenirken bir hata oluştu.' });
+  }
+};
+
 // API Key ile oda bilgilerini getir (Public - Website entegrasyonu için)
 export const getRoomByApiKeyController = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -79,7 +89,7 @@ export const getRoomByApiKeyController = async (req: Request, res: Response): Pr
     const room = await getRoomByApiKey(apiKey);
 
     // CORS kontrolü için allowed domains bilgisini de dönüyoruz
-    res.status(200).json({ 
+    res.status(200).json({
       room,
       message: 'Bu API key ile odayı sitenize entegre edebilirsiniz.'
     });
@@ -125,7 +135,7 @@ export const updateRoomController = async (req: AuthenticatedRequest, res: Respo
   try {
     const userId = req.user?.id;
     const isAdmin = req.user?.platformRole === 'ADMIN';
-    
+
     if (!userId) {
       res.status(401).json({ message: 'Yetkilendirme gerekli.' });
       return;
@@ -145,7 +155,7 @@ export const updateRoomController = async (req: AuthenticatedRequest, res: Respo
       res.status(404).json({ message: error.message });
       return;
     }
-    
+
     if (error.message === 'Bu odayı güncelleme yetkiniz yok.') {
       res.status(403).json({ message: error.message });
       return;
@@ -166,7 +176,7 @@ export const deleteRoomController = async (req: AuthenticatedRequest, res: Respo
   try {
     const userId = req.user?.id;
     const isAdmin = req.user?.platformRole === 'ADMIN';
-    
+
     if (!userId) {
       res.status(401).json({ message: 'Yetkilendirme gerekli.' });
       return;
@@ -182,7 +192,7 @@ export const deleteRoomController = async (req: AuthenticatedRequest, res: Respo
       res.status(404).json({ message: error.message });
       return;
     }
-    
+
     if (error.message === 'Bu odayı silme yetkiniz yok.') {
       res.status(403).json({ message: error.message });
       return;

@@ -133,6 +133,39 @@ export const getUserRooms = async (userId: string) => {
   return rooms;
 };
 
+export const getPublicRooms = async () => {
+  const rooms = await prisma.room.findMany({
+    where: {
+      isPrivate: false
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      isPrivate: true,
+      maxUsers: true,
+      createdAt: true,
+      owner: {
+        select: {
+          username: true
+        }
+      },
+      _count: {
+        select: {
+          participants: true,
+          messages: true,
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    },
+    take: 50 // Limit to 50 for now
+  });
+
+  return rooms;
+};
+
 // API Key ile oda bilgilerini getir (public endpoint)
 export const getRoomByApiKey = async (apiKey: string) => {
   const room = await prisma.room.findUnique({
@@ -274,7 +307,7 @@ export const deleteRoom = async (roomId: string, userId: string, isAdmin: boolea
     where: { id: roomId }
   });
 
-  return { 
+  return {
     message: 'Oda başarıyla silindi.',
     deletedCounts: {
       messages: room._count.messages,
