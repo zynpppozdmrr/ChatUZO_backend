@@ -2,18 +2,13 @@
 import type { Request, Response } from 'express';
 import type { CreateRoomInput } from '../schema/room.validation.js';
 import { createRoom, getRoomBySlug, getUserRooms } from '../services/room.service.js';
-
+import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 // Authenticated request type (JWT middleware sonrası)
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    platformRole: string;
-  };
-}
+
 
 export const createRoomController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     
     if (!userId) {
       res.status(401).json({ message: 'Yetkilendirme gerekli.' });
@@ -59,7 +54,7 @@ export const getRoomController = async (req: Request, res: Response): Promise<vo
 
 export const getMyRoomsController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.user?.id;
     
     if (!userId) {
       res.status(401).json({ message: 'Yetkilendirme gerekli.' });

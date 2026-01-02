@@ -433,6 +433,205 @@
 				}
 			],
 			"description": "Room Plan management endpoints (Admin operations require ADMIN role)"
+		},
+		{
+			"name": "Users",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "Kendi profil bilgilerini getirir. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Update My Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"newusername\",\n  \"avatarUrl\": \"https://i.pravatar.cc/150?img=5\",\n  \"birthdate\": \"2000-06-15T00:00:00.000Z\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								"me"
+							]
+						},
+						"description": "Kendi profil bilgilerini günceller. Tüm alanlar opsiyoneldir. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						},
+						"description": "Tüm kullanıcıları listeler. ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Get User by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{user_id}}",
+									"description": "User UUID"
+								}
+							]
+						},
+						"description": "Belirli bir kullanıcının bilgilerini getirir. Authentication gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Change User Role (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"platformRole\": \"ADMIN\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/:id/role",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id",
+								"role"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{user_id}}",
+									"description": "User UUID"
+								}
+							]
+						},
+						"description": "Kullanıcının platform rolünü değiştirir (USER veya ADMIN). ADMIN yetkisi gereklidir."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/users/:id",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"users",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{user_id}}",
+									"description": "User UUID"
+								}
+							]
+						},
+						"description": "Kullanıcıyı siler. Kullanıcının sahip olduğu oda varsa silinemez. ADMIN veya kendi hesabını silmek için kullanılabilir."
+					},
+					"response": []
+				}
+			],
+			"description": "User profile management endpoints"
 		}
 	],
 	"event": [

@@ -1,11 +1,14 @@
 import type { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/jwt.js';
 
-interface AuthenticatedRequest extends Request {
+export interface AuthenticatedRequest extends Request {
   user?: {
-    userId: string;
-    platformRole: string;
+    id: string;
+    email: string;
     username: string;
+    platformRole: 'USER' | 'ADMIN';
+    status: 'ACTIVE' | 'SUSPENDED' | 'BANNED';
+    avatarUrl?: string | null;
   };
 }
 
@@ -24,9 +27,11 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
 
     // Request objesine kullanıcı bilgilerini ekle
     req.user = {
-      userId: payload.sub,
-      platformRole: payload.role,
-      username: payload.username
+      id: payload.sub,
+      email: payload.email,
+      username: payload.username,
+      platformRole: payload.role as 'USER' | 'ADMIN',
+      status: 'ACTIVE' as const
     };
 
     next();

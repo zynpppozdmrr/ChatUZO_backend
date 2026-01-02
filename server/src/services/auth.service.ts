@@ -97,6 +97,7 @@ export const loginUser = async (data: LoginRequestDto): Promise<LoginResponse> =
   // 4. JWT token oluştur
   const accessToken = generateToken({
     sub: user.id,
+    email: user.email,
     username: user.username,
     role: user.platformRole
   });
