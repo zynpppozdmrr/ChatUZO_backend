@@ -1,7 +1,7 @@
 //Room CRUD, Joining
 import type { Request, Response } from 'express';
 import type { CreateRoomInput } from '../schema/room.validation.js';
-import { createRoom, getRoomBySlug, getUserRooms } from '../services/room.service.js';
+import { createRoom, getRoomBySlug, getUserRooms, getRoomByApiKey } from '../services/room.service.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 // Authenticated request type (JWT middleware sonrası)
 
@@ -67,5 +67,28 @@ export const getMyRoomsController = async (req: AuthenticatedRequest, res: Respo
   } catch (error: any) {
     console.error('Get my rooms error:', error);
     res.status(500).json({ message: 'Odalar listelenirken bir hata oluştu.' });
+  }
+};
+
+// API Key ile oda bilgilerini getir (Public - Website entegrasyonu için)
+export const getRoomByApiKeyController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { apiKey } = req.params;
+
+    const room = await getRoomByApiKey(apiKey);
+
+    // CORS kontrolü için allowed domains bilgisini de dönüyoruz
+    res.status(200).json({ 
+      room,
+      message: 'Bu API key ile odayı sitenize entegre edebilirsiniz.'
+    });
+  } catch (error: any) {
+    if (error.message === 'Geçersiz API key.') {
+      res.status(404).json({ message: error.message });
+      return;
+    }
+
+    console.error('Get room by API key error:', error);
+    res.status(500).json({ message: 'Oda bilgisi alınırken bir hata oluştu.' });
   }
 };

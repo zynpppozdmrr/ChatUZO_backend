@@ -1,6 +1,6 @@
 //   api/rooms/*
 import express from 'express';
-import { createRoomController, getRoomController, getMyRoomsController } from '../controllers/room.controller.js';
+import { createRoomController, getRoomController, getMyRoomsController, getRoomByApiKeyController } from '../controllers/room.controller.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { authenticate } from '../middlewares/auth.middleware.js';
 import { CreateRoomSchema } from '../schema/room.validation.js';
@@ -17,6 +17,9 @@ router.get('/my-rooms', authenticate, getMyRoomsController);
 
 
 //PUBLIC ROUTES
+// API Key ile oda bilgisi al (public - website entegrasyonu için)
+router.get('/api-key/:apiKey', getRoomByApiKeyController);
+
 // Slug ile oda bilgisi al (public)
 router.get('/:slug', getRoomController);
 

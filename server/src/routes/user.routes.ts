@@ -16,8 +16,8 @@ router.put('/me', authenticate, validate(UpdateUserSchema), userController.updat
 // GET /api/users - Tüm kullanıcıları listele (Admin only)
 router.get('/', authenticate, userController.getAllUsers);
 
-// GET /api/users/:id - Belirli kullanıcıyı getir
-router.get('/:id', authenticate, userController.getUserById);
+// GET /api/users/:id - Belirli kullanıcıyı getir (Public)
+router.get('/:id', userController.getUserById);
 
 // PUT /api/users/:id/role - Kullanıcı rolünü değiştir (Admin only)
 router.put('/:id/role', authenticate, validate(ChangeRoleSchema), userController.changeUserRole);

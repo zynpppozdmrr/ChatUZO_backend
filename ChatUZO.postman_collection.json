@@ -174,6 +174,34 @@
 					"response": []
 				},
 				{
+					"name": "Get Room by API Key (Public)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/api-key/:apiKey",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								"api-key",
+								":apiKey"
+							],
+							"variable": [
+								{
+									"key": "apiKey",
+									"value": "{{room_api_key}}",
+									"description": "Oda API Key (oda oluşturulurken otomatik oluşturulur)"
+								}
+							]
+						},
+						"description": "API Key ile oda bilgilerini getirir. Website entegrasyonu için kullanılır. Public endpoint, authentication gerekmez. Oda oluşturulurken otomatik olarak bir API key generate edilir ve bu key ile odayı dış sitelere entegre edebilirsiniz."
+					},
+					"response": []
+				},
+				{
 					"name": "Create Private Room",
 					"request": {
 						"method": "POST",
@@ -526,13 +554,7 @@
 					"name": "Get User by ID",
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{access_token}}",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{base_url}}/api/users/:id",
 							"host": [
@@ -551,7 +573,7 @@
 								}
 							]
 						},
-						"description": "Belirli bir kullanıcının bilgilerini getirir. Authentication gereklidir."
+						"description": "Belirli bir kullanıcının bilgilerini getirir. Public endpoint, authentication gerekmez."
 					},
 					"response": []
 				},

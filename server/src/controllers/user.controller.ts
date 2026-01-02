@@ -1,9 +1,10 @@
 //Profile management
 import type { Request, Response } from 'express';
+import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import * as userService from '../services/user.service.js';
 
 // GET /api/users/me - Kendi profilini getir
-export const getMyProfile = async (req: Request, res: Response) => {
+export const getMyProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const user = await userService.getUserById(userId);
@@ -27,7 +28,7 @@ export const getUserById = async (req: Request, res: Response) => {
 };
 
 // GET /api/users - Tüm kullanıcıları listele (Admin only)
-export const getAllUsers = async (req: Request, res: Response) => {
+export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Admin kontrolü
     if (req.user!.platformRole !== 'ADMIN') {
@@ -42,7 +43,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 };
 
 // PUT /api/users/me - Kendi profilini güncelle
-export const updateMyProfile = async (req: Request, res: Response) => {
+export const updateMyProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id;
     const updatedUser = await userService.updateUser(userId, req.body);
@@ -54,7 +55,7 @@ export const updateMyProfile = async (req: Request, res: Response) => {
 };
 
 // PUT /api/users/:id/role - Kullanıcı rolünü değiştir (Admin only)
-export const changeUserRole = async (req: Request, res: Response) => {
+export const changeUserRole = async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Admin kontrolü
     if (req.user!.platformRole !== 'ADMIN') {
@@ -71,7 +72,7 @@ export const changeUserRole = async (req: Request, res: Response) => {
 };
 
 // DELETE /api/users/:id - Kullanıcıyı sil (Admin or own account)
-export const deleteUser = async (req: Request, res: Response) => {
+export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const requesterId = req.user!.id;

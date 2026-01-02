@@ -122,3 +122,48 @@ export const getUserRooms = async (userId: string) => {
 
   return rooms;
 };
+
+// API Key ile oda bilgilerini getir (public endpoint)
+export const getRoomByApiKey = async (apiKey: string) => {
+  const room = await prisma.room.findUnique({
+    where: { apiKey },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      apiKey: true,
+      isPrivate: true,
+      maxUsers: true,
+      allowedDomains: true,
+      uiSettings: true,
+      logicConfig: true,
+      owner: {
+        select: {
+          id: true,
+          username: true,
+        }
+      },
+      roomPlan: {
+        select: {
+          name: true,
+          maxUsers: true,
+          retentionDays: true,
+          features: true,
+        }
+      },
+      _count: {
+        select: {
+          participants: true,
+          messages: true,
+        }
+      },
+      createdAt: true,
+    }
+  });
+
+  if (!room) {
+    throw new Error('Geçersiz API key.');
+  }
+
+  return room;
+};
