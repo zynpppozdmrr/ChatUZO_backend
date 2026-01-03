@@ -13,7 +13,7 @@ export interface ClientToServerEvents {
   ) => void;
   leave_room: (data: { roomId: string }) => void;
   send_message: (
-    data: { roomId: string; content: string },
+    data: { roomId: string; content: string; type?: string; attachment_url?: string },
     ack?: (res: { ok: boolean; error?: string; message?: string; messageId?: string }) => void
   ) => void;
   typing_start: (data: { roomId: string }) => void;

@@ -134,11 +134,11 @@ export const setupSocketIO = (io: Server<ClientToServerEvents, ServerToClientEve
       }
     });
 
-    socket.on("send_message", async ({ roomId, content }, ack) => {
+    socket.on("send_message", async ({ roomId, content, type, attachment_url }, ack) => {
       try {
         if (!user?.userId) return ack?.({ ok: false, error: "UNAUTHORIZED" });
 
-        console.log(`[send_message] userId=${user.userId}, roomId=${roomId}, content=${content}`);
+        console.log(`[send_message] userId=${user.userId}, roomId=${roomId}, content=${content}, type=${type || 'TEXT'}`);
         
         // ÖNCE roomId'yi resolve et (slug -> UUID)
         const access = await ensureUserInRoom(user.userId, roomId);
@@ -155,7 +155,13 @@ export const setupSocketIO = (io: Server<ClientToServerEvents, ServerToClientEve
         
         const resolvedRoomId = access.roomId; // UUID
         
-        const result = await createMessage({ userId: user.userId, roomId: resolvedRoomId, content });
+        const result = await createMessage({ 
+          userId: user.userId, 
+          roomId: resolvedRoomId, 
+          content,
+          type,
+          attachmentUrl: attachment_url
+        });
         console.log(`[send_message] result:`, result);
         
         if (!result.ok) {

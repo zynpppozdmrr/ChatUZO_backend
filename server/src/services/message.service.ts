@@ -3,8 +3,14 @@ import { ensureUserInRoom } from "./roomAccess.service.js";
 import type { MessageDTO } from "../types/Realtime/message.js";
 import { filterMessage } from "../utils/profanityFilter.js";
 
-export async function createMessage(params: { userId: string; roomId: string; content: string }) {
-  const { userId, roomId, content } = params;
+export async function createMessage(params: { 
+  userId: string; 
+  roomId: string; 
+  content: string;
+  type?: string;
+  attachmentUrl?: string;
+}) {
+  const { userId, roomId, content, type = 'TEXT', attachmentUrl } = params;
 
   const access = await ensureUserInRoom(userId, roomId);
   if (!access.ok) return { ok: false as const, error: access.error };
@@ -44,12 +50,14 @@ export async function createMessage(params: { userId: string; roomId: string; co
   // İçeriği filtrele (filter aktifse küfürler yıldızlanır, değilse orijinal içerik kullanılır)
   const filteredContent = profanityFilterEnabled ? filterMessage(content, true) : content;
 
-  console.log(`[createMessage] Creating message in DB... (profanity filter: ${profanityFilterEnabled ? 'enabled' : 'disabled'})`);
+  console.log(`[createMessage] Creating message in DB... (type: ${type}, profanity filter: ${profanityFilterEnabled ? 'enabled' : 'disabled'})`);
   const message = await prisma.message.create({
     data: {
       userId,
       roomId: resolvedRoomId,
       content: filteredContent,
+      type: (type?.toUpperCase() || 'TEXT') as any,
+      attachmentUrl: attachmentUrl || null,
     },
     include: {
       user: {
@@ -70,6 +78,8 @@ export async function createMessage(params: { userId: string; roomId: string; co
     createdAt: message.createdAt,
     type: message.type,
     isDeleted: message.isDeleted,
+    attachmentUrl: message.attachmentUrl,
+    attachment_url: message.attachmentUrl,
     sender: message.user
   };
 
@@ -114,6 +124,8 @@ export async function getRoomMessages(params: { userId: string; roomId: string; 
     createdAt: m.createdAt,
     type: m.type,
     isDeleted: m.isDeleted,
+    attachmentUrl: m.attachmentUrl,
+    attachment_url: m.attachmentUrl,
     sender: m.user
   }));
 
