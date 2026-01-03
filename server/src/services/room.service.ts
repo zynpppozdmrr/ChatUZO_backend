@@ -302,7 +302,18 @@ export const deleteRoom = async (roomId: string, userId: string, isAdmin: boolea
     throw new Error('Bu odayı silme yetkiniz yok.');
   }
 
-  // 3. Oda sil (cascade ile participants ve messages de silinir)
+  // 3. Önce bağımlı kayıtları sil (manuel cascade)
+  // 3a. Mesajları sil
+  await prisma.message.deleteMany({
+    where: { roomId }
+  });
+
+  // 3b. Katılımcıları sil
+  await prisma.roomParticipant.deleteMany({
+    where: { roomId }
+  });
+
+  // 4. Son olarak oda sil
   await prisma.room.delete({
     where: { id: roomId }
   });
