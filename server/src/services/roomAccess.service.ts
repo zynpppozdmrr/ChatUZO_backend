@@ -19,6 +19,11 @@ export async function ensureUserInRoom(userId: string, roomIdOrSlug: string) {
     select: { role: true, status: true },
   });
 
+  // Banlanmış kullanıcı = başarısız
+  if (participant && participant.status === "BANNED") {
+    return { ok: false as const, error: "ROOM_BANNED" };
+  }
+
   // If not a participant, check if room is public and auto-join
   if (!participant) {
     if (!room.isPrivate) {
@@ -41,8 +46,6 @@ export async function ensureUserInRoom(userId: string, roomIdOrSlug: string) {
       return { ok: false as const, error: "ROOM_ACCESS_DENIED" };
     }
   }
-
-  if (participant.status === "BANNED") return { ok: false as const, error: "ROOM_BANNED" };
 
   return { ok: true as const, role: participant.role, status: participant.status, roomId };
 }

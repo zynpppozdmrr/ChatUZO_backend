@@ -6,7 +6,6 @@ export const CreateRoomSchema = z.object({
   slug: z.string().regex(/^[a-z0-9-]+$/, "Geçersiz slug formatı"),
   isPrivate: z.boolean(),
   password: z.string().optional(),
-  maxUsers: z.number().int().positive(),
   allowedDomains: z.array(z.string().url("Geçersiz domain formatı")).min(1),
   uiSettings: UISettingsSchema,
   logicConfig: LogicConfigSchema,
@@ -35,3 +34,18 @@ export const UpdateRoomSchema = z.object({
 });
 
 export type UpdateRoomInput = z.infer<typeof UpdateRoomSchema>;
+
+// Moderator Assignment Schema
+export const AssignModeratorSchema = z.object({
+  participantId: z.string().uuid("Geçersiz Katılımcı ID"),
+  isModerator: z.boolean().default(true),
+});
+
+export type AssignModeratorInput = z.infer<typeof AssignModeratorSchema>;
+
+// Participant Status Schema (Mute/Ban)
+export const ParticipantStatusSchema = z.object({
+  status: z.enum(['ACTIVE', 'MUTED', 'BANNED']),
+});
+
+export type ParticipantStatusInput = z.infer<typeof ParticipantStatusSchema>;

@@ -6,7 +6,7 @@ import bcrypt from 'bcrypt';
 const SALT_ROUNDS = 10;
 
 export const createRoom = async (ownerId: string, data: CreateRoomDto) => {
-  const { name, slug, isPrivate, password, maxUsers, allowedDomains, uiSettings, logicConfig, roomPlanId } = data;
+  const { name, slug, isPrivate, password, allowedDomains, uiSettings, logicConfig, roomPlanId } = data;
 
   // 1. Slug benzersizliğini kontrol et
   const existingRoom = await prisma.room.findUnique({
@@ -17,7 +17,7 @@ export const createRoom = async (ownerId: string, data: CreateRoomDto) => {
     throw new Error('Bu slug zaten kullanılıyor.');
   }
 
-  // 2. Plan kontrolü
+  // 2. Plan kontrolü ve maxUsers'ı plandan al
   const plan = await prisma.roomPlan.findUnique({
     where: { id: roomPlanId }
   });
@@ -26,10 +26,8 @@ export const createRoom = async (ownerId: string, data: CreateRoomDto) => {
     throw new Error('Geçersiz plan seçimi.');
   }
 
-  // 3. Plan limitlerine göre kontrol
-  if (maxUsers > plan.maxUsers) {
-    throw new Error(`Seçilen plan maksimum ${plan.maxUsers} kullanıcıyı desteklemektedir.`);
-  }
+  // 3. maxUsers değerini direkt plandan al
+  const maxUsers = plan.maxUsers;
 
   // 4. Şifreyi hash'le (eğer private ise)
   let passwordHash: string | undefined;
@@ -37,7 +35,7 @@ export const createRoom = async (ownerId: string, data: CreateRoomDto) => {
     passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   }
 
-  // 5. Oda oluştur
+  // 5. Oda oluştur (maxUsers plandan otomatik alındı)
   const room = await prisma.room.create({
     data: {
       name,
@@ -115,6 +113,7 @@ export const getUserRooms = async (userId: string) => {
       id: true,
       name: true,
       slug: true,
+      ownerId: true,
       isPrivate: true,
       maxUsers: true,
       createdAt: true,
@@ -142,6 +141,7 @@ export const getPublicRooms = async () => {
       id: true,
       name: true,
       slug: true,
+      ownerId: true,
       isPrivate: true,
       maxUsers: true,
       createdAt: true,
@@ -313,5 +313,242 @@ export const deleteRoom = async (roomId: string, userId: string, isAdmin: boolea
       messages: room._count.messages,
       participants: room._count.participants,
     }
+  };
+};
+
+// Odanın katılımcılarını getir
+export const getRoomParticipants = async (roomId: string) => {
+  // 1. Oda kontrolü
+  const room = await prisma.room.findUnique({
+    where: { id: roomId }
+  });
+
+  if (!room) {
+    throw new Error('Oda bulunamadı.');
+  }
+
+  // 2. Katılımcıları getir
+  const participants = await prisma.roomParticipant.findMany({
+    where: { roomId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          avatarUrl: true,
+        }
+      }
+    },
+    orderBy: [
+      { role: 'asc' }, // OWNER, MODERATOR, MEMBER sırasında
+      { createdAt: 'asc' } // Aynı role'de en erken katılmış ilk
+    ]
+  });
+
+  return {
+    roomId,
+    roomName: room.name,
+    totalParticipants: participants.length,
+    participants
+  };
+};
+
+// Katılımcıya moderatör yetkisi ver/kaldır
+export const assignModeratorRole = async (
+  roomId: string,
+  userId: string,  // Changed from participantId to userId
+  isModerator: boolean,
+  requestingUserId: string,
+  isAdmin: boolean
+) => {
+  // 1. Oda kontrolü ve owner olup olmadığını kontrol et
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    select: { ownerId: true }
+  });
+
+  if (!room) {
+    throw new Error('Oda bulunamadı.');
+  }
+
+  // 2. Yetki kontrolü (sadece owner veya admin)
+  if (room.ownerId !== requestingUserId && !isAdmin) {
+    throw new Error('Bu işlemi gerçekleştirme yetkiniz yok.');
+  }
+
+  // 3. Katılımcı kontrolü - userId ve roomId ile bul
+  const participant = await prisma.roomParticipant.findUnique({
+    where: { 
+      roomId_userId: {
+        roomId,
+        userId
+      }
+    },
+    include: { user: true }
+  });
+
+  console.log('[assignModeratorRole] Looking for participant:', { userId, roomId });
+  console.log('[assignModeratorRole] Found participant:', participant);
+
+  if (!participant) {
+    throw new Error('Katılımcı bulunamadı.');
+  }
+
+  if (participant.roomId !== roomId) {
+    throw new Error('Bu katılımcı bu odaya ait değil.');
+  }
+
+  // 4. Owner'ı moderator yapamaz (zaten owner)
+  if (participant.role === 'OWNER') {
+    throw new Error('Oda sahibi zaten maksimum yetkilere sahiptir.');
+  }
+
+  // 5. Katılımcının rolünü güncelle
+  const newRole = isModerator ? 'MODERATOR' : 'MEMBER';
+  const updatedParticipant = await prisma.roomParticipant.update({
+    where: { 
+      roomId_userId: {
+        roomId,
+        userId
+      }
+    },
+    data: { role: newRole as any },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          avatarUrl: true
+        }
+      }
+    }
+  });
+
+  return {
+    message: `Katılımcı ${isModerator ? 'moderatör' : 'üye'} olarak güncellenmiştir.`,
+    participant: updatedParticipant
+  };
+};
+
+// Katılımcıyı muteleme (moderatör/owner işlemi)
+export const muteParticipant = async (
+  roomId: string,
+  userId: string,
+  requestingUserId: string,
+  isAdmin: boolean
+) => {
+  return updateParticipantStatus(roomId, userId, 'MUTED', requestingUserId, isAdmin);
+};
+
+// Katılımcıyı mutelemeyi kaldırma (moderatör/owner işlemi)
+export const unmuteParticipant = async (
+  roomId: string,
+  userId: string,
+  requestingUserId: string,
+  isAdmin: boolean
+) => {
+  return updateParticipantStatus(roomId, userId, 'ACTIVE', requestingUserId, isAdmin);
+};
+
+// Katılımcıyı banlama (moderatör/owner işlemi)
+export const banParticipant = async (
+  roomId: string,
+  userId: string,
+  requestingUserId: string,
+  isAdmin: boolean
+) => {
+  return updateParticipantStatus(roomId, userId, 'BANNED', requestingUserId, isAdmin);
+};
+
+// Katılımcının banını kaldırma (moderatör/owner işlemi)
+export const unbanParticipant = async (
+  roomId: string,
+  userId: string,
+  requestingUserId: string,
+  isAdmin: boolean
+) => {
+  return updateParticipantStatus(roomId, userId, 'ACTIVE', requestingUserId, isAdmin);
+};
+
+// Helper function: Katılımcı status'unu güncelle
+const updateParticipantStatus = async (
+  roomId: string,
+  userId: string,
+  newStatus: 'ACTIVE' | 'MUTED' | 'BANNED',
+  requestingUserId: string,
+  isAdmin: boolean
+) => {
+  // 1. Oda kontrolü
+  const room = await prisma.room.findUnique({
+    where: { id: roomId },
+    select: { ownerId: true }
+  });
+
+  if (!room) {
+    throw new Error('Oda bulunamadı.');
+  }
+
+  // 2. Yetki kontrolü (owner veya admin olması gerekli, moderatörler şimdilik dışında)
+  if (room.ownerId !== requestingUserId && !isAdmin) {
+    throw new Error('Bu işlemi gerçekleştirme yetkiniz yok.');
+  }
+
+  // 3. Hedef katılımcı kontrolü
+  const participant = await prisma.roomParticipant.findUnique({
+    where: {
+      roomId_userId: {
+        roomId,
+        userId
+      }
+    },
+    include: { user: true }
+  });
+
+  if (!participant) {
+    throw new Error('Katılımcı bulunamadı.');
+  }
+
+  // 4. Owner'a işlem yapamaz
+  if (participant.role === 'OWNER') {
+    throw new Error('Oda sahibine işlem uygulanamaz.');
+  }
+
+  // 5. Aynı durumda ise hata döndür
+  if (participant.status === newStatus) {
+    throw new Error(`Katılımcı zaten ${newStatus.toLowerCase()} durumunda.`);
+  }
+
+  // 6. Status'u güncelle
+  const updatedParticipant = await prisma.roomParticipant.update({
+    where: {
+      roomId_userId: {
+        roomId,
+        userId
+      }
+    },
+    data: { status: newStatus as any },
+    include: {
+      user: {
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          avatarUrl: true
+        }
+      }
+    }
+  });
+
+  const statusMessages = {
+    'MUTED': 'katılımcı sessize alındı',
+    'BANNED': 'katılımcı banlandı',
+    'ACTIVE': 'katılımcı aktif hale getirildi'
+  };
+
+  return {
+    message: `${updatedParticipant.user.username} - ${statusMessages[newStatus]}`,
+    participant: updatedParticipant
   };
 };

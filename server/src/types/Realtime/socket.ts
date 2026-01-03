@@ -7,14 +7,18 @@ export type TokenPayload = {
 
 // Socket.io event types
 export interface ClientToServerEvents {
-  join_room: (data: { roomId: string }, ack?: (res: { ok: boolean; error?: string }) => void) => void;
+  join_room: (
+    data: { roomId: string }, 
+    ack?: (res: { ok: boolean; error?: string; message?: string; onlineUsers?: Array<{ userId: string; username: string; socketId: string }> }) => void
+  ) => void;
   leave_room: (data: { roomId: string }) => void;
   send_message: (
     data: { roomId: string; content: string },
-    ack?: (res: { ok: boolean; error?: string; messageId?: string }) => void
+    ack?: (res: { ok: boolean; error?: string; message?: string; messageId?: string }) => void
   ) => void;
   typing_start: (data: { roomId: string }) => void;
   typing_stop: (data: { roomId: string }) => void;
+  get_online_users: (data: { roomId: string }) => void;
 }
 
 export interface ServerToClientEvents {
@@ -28,8 +32,8 @@ export interface ServerToClientEvents {
     isDeleted: boolean;
   }) => void;
   user_typing: (data: { userId: string; username?: string; roomId: string }) => void;
-  user_stopped_typing: (data: { userId: string; roomId: string }) => void;
+  user_stopped_typing: (data: { userId: string; username?: string; roomId: string }) => void;
   user_joined: (data: { userId: string; username?: string; roomId: string }) => void;
-  user_left: (data: { userId: string; roomId: string }) => void;
-  online_users: (data: { roomId: string; users: Array<{ userId: string; username?: string }> }) => void;
+  user_left: (data: { userId: string; username?: string; roomId: string }) => void;
+  online_users: (data: { roomId: string; users: Array<{ userId: string; username?: string; socketId?: string }> }) => void;
 }

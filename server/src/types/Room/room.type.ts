@@ -6,7 +6,6 @@ export interface CreateRoomDto {
   slug: string;
   isPrivate: boolean;
   password?: string;         // Eğer isPrivate true ise
-  maxUsers: number;          // Plana göre frontend'de kısıtlanmalı
   allowedDomains: string[];  // En az 1 tane zorunlu
   uiSettings: UISettings;
   logicConfig: LogicConfig;

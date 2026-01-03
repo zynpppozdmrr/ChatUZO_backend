@@ -1,7 +1,7 @@
 //Room CRUD, Joining
 import type { Request, Response } from 'express';
-import type { CreateRoomInput, UpdateRoomInput } from '../schema/room.validation.js';
-import { createRoom, getRoomBySlug, getUserRooms, getPublicRooms, getRoomByApiKey, updateRoom, deleteRoom } from '../services/room.service.js';
+import type { CreateRoomInput, UpdateRoomInput, AssignModeratorInput, ParticipantStatusInput } from '../schema/room.validation.js';
+import { createRoom, getRoomBySlug, getUserRooms, getPublicRooms, getRoomByApiKey, updateRoom, deleteRoom, assignModeratorRole, getRoomParticipants, muteParticipant, unmuteParticipant, banParticipant, unbanParticipant } from '../services/room.service.js';
 import { getRoomMessages } from '../services/message.service.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 // Authenticated request type (JWT middleware sonrası)
@@ -201,4 +201,166 @@ export const deleteRoomController = async (req: AuthenticatedRequest, res: Respo
     console.error('Delete room error:', error);
     res.status(500).json({ message: 'Oda silinirken bir hata oluştu.' });
   }
+};
+
+export const assignModeratorController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const requestingUserId = req.user?.id;
+    const isAdmin = req.user?.platformRole === 'ADMIN';
+
+    if (!requestingUserId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { roomId } = req.params;
+    const validatedData = req.body as AssignModeratorInput;
+
+    const result = await assignModeratorRole(roomId, validatedData.participantId, validatedData.isModerator, requestingUserId, isAdmin);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    if (error.message === 'Oda bulunamadı.') {
+      res.status(404).json({ message: error.message });
+      return;
+    }
+
+    if (error.message === 'Katılımcı bulunamadı.') {
+      res.status(404).json({ message: error.message });
+      return;
+    }
+
+    if (error.message.includes('yetkiniz yok') || error.message === 'Bu katılımcı bu odaya ait değil.' || error.message === 'Oda sahibi zaten maksimum yetkilere sahiptir.') {
+      res.status(403).json({ message: error.message });
+      return;
+    }
+
+    console.error('Assign moderator error:', error);
+    res.status(500).json({ message: 'Moderatör atanırken bir hata oluştu.' });
+  }
+};
+
+export const getRoomParticipantsController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { roomId } = req.params;
+
+    const result = await getRoomParticipants(roomId);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    if (error.message === 'Oda bulunamadı.') {
+      res.status(404).json({ message: error.message });
+      return;
+    }
+
+    console.error('Get room participants error:', error);
+    res.status(500).json({ message: 'Katılımcılar alınırken bir hata oluştu.' });
+  }
+};
+
+// Katılımcıyı muteleme (Owner/Moderator işlemi)
+export const muteParticipantController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const requestingUserId = req.user?.id;
+    const isAdmin = req.user?.platformRole === 'ADMIN';
+
+    if (!requestingUserId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { roomId, userId } = req.params;
+
+    const result = await muteParticipant(roomId, userId, requestingUserId, isAdmin);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    handleParticipantStatusError(error, res, 'muteleme');
+  }
+};
+
+// Katılımcıyı mutelemeyi kaldırma
+export const unmuteParticipantController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const requestingUserId = req.user?.id;
+    const isAdmin = req.user?.platformRole === 'ADMIN';
+
+    if (!requestingUserId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { roomId, userId } = req.params;
+
+    const result = await unmuteParticipant(roomId, userId, requestingUserId, isAdmin);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    handleParticipantStatusError(error, res, 'muteleme kaldırma');
+  }
+};
+
+// Katılımcıyı banlama
+export const banParticipantController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const requestingUserId = req.user?.id;
+    const isAdmin = req.user?.platformRole === 'ADMIN';
+
+    if (!requestingUserId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { roomId, userId } = req.params;
+
+    const result = await banParticipant(roomId, userId, requestingUserId, isAdmin);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    handleParticipantStatusError(error, res, 'banlama');
+  }
+};
+
+// Katılımcının banını kaldırma
+export const unbanParticipantController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const requestingUserId = req.user?.id;
+    const isAdmin = req.user?.platformRole === 'ADMIN';
+
+    if (!requestingUserId) {
+      res.status(401).json({ message: 'Yetkilendirme gerekli.' });
+      return;
+    }
+
+    const { roomId, userId } = req.params;
+
+    const result = await unbanParticipant(roomId, userId, requestingUserId, isAdmin);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    handleParticipantStatusError(error, res, 'banlama kaldırma');
+  }
+};
+
+// Helper: Katılımcı status hataları
+const handleParticipantStatusError = (error: any, res: Response, operation: string) => {
+  if (error.message === 'Oda bulunamadı.' || error.message === 'Katılımcı bulunamadı.') {
+    res.status(404).json({ message: error.message });
+    return;
+  }
+
+  if (error.message.includes('yetkiniz yok') || error.message === 'Oda sahibine işlem uygulanamaz.' || error.message.includes('zaten')) {
+    res.status(403).json({ message: error.message });
+    return;
+  }
+
+  console.error(`Participant ${operation} error:`, error);
+  res.status(500).json({ message: `Katılımcı ${operation}ında bir hata oluştu.` });
 };

@@ -1,6 +1,7 @@
 import { prisma } from "../config/prisma.js";
 import { ensureUserInRoom } from "./roomAccess.service.js";
 import type { MessageDTO } from "../types/Realtime/message.js";
+import { filterMessage } from "../utils/profanityFilter.js";
 
 export async function createMessage(params: { userId: string; roomId: string; content: string }) {
   const { userId, roomId, content } = params;
@@ -10,12 +11,45 @@ export async function createMessage(params: { userId: string; roomId: string; co
 
   const resolvedRoomId = access.roomId;
 
-  console.log(`[createMessage] Creating message in DB...`);
+  // Mutelenmiş kullanıcı mesaj gönderemez
+  const participant = await prisma.roomParticipant.findUnique({
+    where: {
+      roomId_userId: {
+        roomId: resolvedRoomId,
+        userId
+      }
+    }
+  });
+
+  if (participant?.status === 'MUTED') {
+    return { ok: false as const, error: 'PARTICIPANT_MUTED' };
+  }
+
+  if (participant?.status === 'BANNED') {
+    return { ok: false as const, error: 'PARTICIPANT_BANNED' };
+  }
+
+  // Room ayarlarını al (profanity filter kontrolü için)
+  const room = await prisma.room.findUnique({
+    where: { id: resolvedRoomId },
+    select: {
+      logicConfig: true
+    }
+  });
+
+  // Profanity filter kontrolü - sadece oda ayarında aktifse uygula
+  const logicConfig = room?.logicConfig as any;
+  const profanityFilterEnabled = logicConfig?.profanityFilter === true;
+  
+  // İçeriği filtrele (filter aktifse küfürler yıldızlanır, değilse orijinal içerik kullanılır)
+  const filteredContent = profanityFilterEnabled ? filterMessage(content, true) : content;
+
+  console.log(`[createMessage] Creating message in DB... (profanity filter: ${profanityFilterEnabled ? 'enabled' : 'disabled'})`);
   const message = await prisma.message.create({
     data: {
       userId,
       roomId: resolvedRoomId,
-      content,
+      content: filteredContent,
     },
     include: {
       user: {
@@ -55,7 +89,7 @@ export async function getRoomMessages(params: { userId: string; roomId: string; 
   console.log(`[getRoomMessages] Fetching messages from DB for roomId=${resolvedRoomId}`);
   const messages = await prisma.message.findMany({
     where: { roomId: resolvedRoomId },
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "asc" }, // En eski mesaj ilk, en yeni en sonda
     take: take + 1,
     include: {
       user: {
