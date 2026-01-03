@@ -6,4 +6,6 @@ export type MessageDTO = {
   createdAt: Date;
   type: string;
   isDeleted: boolean;
+  attachmentUrl?: string | null;
+  attachment_url?: string | null;
 };
