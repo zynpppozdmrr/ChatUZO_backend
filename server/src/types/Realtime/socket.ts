@@ -2,7 +2,13 @@ export type PlatformRole = "USER" | "ADMIN";
 
 export type TokenPayload = {
   userId: string;
+  username?: string;
   role: PlatformRole;
+};
+
+export type SocketData = {
+  user: TokenPayload;
+  roomCache: Map<string, string>;
 };
 
 // Socket.io event types

@@ -1,12 +1,20 @@
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
+import type { DefaultEventsMap } from "socket.io";
 import { socketAuthMiddleware } from "./middlewares/auth.middleware.js";
 import { ensureUserInRoom } from "../services/roomAccess.service.js";
 import { createMessage } from "../services/message.service.js";
-import { getRoomParticipants } from "../services/room.service.js";
-import { setUserTyping, clearUserTyping } from "../services/presence.service.js";
-import type { ClientToServerEvents, ServerToClientEvents } from "../types/Realtime/socket.js";
+import {
+  addRoomUser,
+  removeRoomUser,
+  getRoomUsers,
+  removeSocketEverywhere,
+  setUserTyping,
+  clearUserTyping,
+} from "../services/presence.service.js";
+import type { ClientToServerEvents, ServerToClientEvents, SocketData } from "../types/Realtime/socket.js";
 
-const roomUsers = new Map<string, Map<string, { userId: string; username: string; socketId: string }>>();
+type AppServer = Server<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData>;
+type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, DefaultEventsMap, SocketData>;
 
 const ACCESS_ERROR_MESSAGES: Record<string, string> = {
   PARTICIPANT_MUTED: 'Sessize alındığınız için mesaj gönderemezsiniz.',
@@ -18,37 +26,37 @@ const ACCESS_ERROR_MESSAGES: Record<string, string> = {
 
 const accessError = (error: string) => ACCESS_ERROR_MESSAGES[error] ?? 'İşlem gerçekleştirilemedi.';
 
-export const setupSocketIO = (io: Server<ClientToServerEvents, ServerToClientEvents>) => {
+// Resolves a roomId/slug to its UUID, caching the result per-socket to avoid
+// repeated DB lookups on high-frequency events (typing, leave, etc).
+const resolveRoomId = async (socket: AppSocket, roomId: string): Promise<string | null> => {
+  const cached = socket.data.roomCache.get(roomId);
+  if (cached) return cached;
+
+  const access = await ensureUserInRoom(socket.data.user.userId, roomId);
+  if (!access.ok) return null;
+
+  socket.data.roomCache.set(roomId, access.roomId);
+  return access.roomId;
+};
+
+export const setupSocketIO = (io: AppServer) => {
   io.use(socketAuthMiddleware);
 
   io.on("connection", (socket) => {
     const user = socket.data.user;
+    socket.data.roomCache = new Map();
 
     socket.on("join_room", async ({ roomId }, ack) => {
       try {
-        if (!user?.userId) return ack?.({ ok: false, error: "UNAUTHORIZED" });
-
         const access = await ensureUserInRoom(user.userId, roomId);
         if (!access.ok) {
           return ack?.({ ok: false, error: access.error, message: accessError(access.error) });
         }
 
         const resolvedRoomId = access.roomId;
+        socket.data.roomCache.set(roomId, resolvedRoomId);
         socket.join(resolvedRoomId);
-
-        const participantsResult = await getRoomParticipants(resolvedRoomId);
-        const participantIds = participantsResult.participants.map((p) => p.userId);
-
-        if (participantIds.includes(user.userId)) {
-          if (!roomUsers.has(resolvedRoomId)) {
-            roomUsers.set(resolvedRoomId, new Map());
-          }
-          roomUsers.get(resolvedRoomId)!.set(socket.id, {
-            userId: user.userId,
-            username: user.username || 'Anonymous',
-            socketId: socket.id,
-          });
-        }
+        addRoomUser(resolvedRoomId, socket.id, user.userId, user.username || 'Anonymous');
 
         socket.to(resolvedRoomId).emit("user_joined", {
           userId: user.userId,
@@ -56,58 +64,38 @@ export const setupSocketIO = (io: Server<ClientToServerEvents, ServerToClientEve
           roomId: resolvedRoomId,
         });
 
-        const onlineUsers = roomUsers.has(resolvedRoomId)
-          ? Array.from(roomUsers.get(resolvedRoomId)!.values())
-          : [];
-
+        const onlineUsers = getRoomUsers(resolvedRoomId);
         ack?.({ ok: true, onlineUsers });
         io.to(resolvedRoomId).emit("online_users", { roomId: resolvedRoomId, users: onlineUsers });
       } catch (error) {
-        console.error(`[join_room] Error:`, error);
+        console.error('[join_room] Error:', error);
         ack?.({ ok: false, error: "JOIN_ROOM_FAILED", message: error instanceof Error ? error.message : 'Unknown error' });
       }
     });
 
-    socket.on("get_online_users", ({ roomId }) => {
-      const onlineUsers = roomUsers.has(roomId)
-        ? Array.from(roomUsers.get(roomId)!.values())
-        : [];
-      socket.emit("online_users", { roomId, users: onlineUsers });
+    socket.on("get_online_users", async ({ roomId }) => {
+      const resolvedRoomId = await resolveRoomId(socket, roomId);
+      if (!resolvedRoomId) return;
+      socket.emit("online_users", { roomId: resolvedRoomId, users: getRoomUsers(resolvedRoomId) });
     });
 
-    socket.on("leave_room", ({ roomId }) => {
-      socket.leave(roomId);
+    socket.on("leave_room", async ({ roomId }) => {
+      const resolvedRoomId = await resolveRoomId(socket, roomId);
+      if (!resolvedRoomId) return;
 
-      if (roomUsers.has(roomId) && user?.userId) {
-        roomUsers.get(roomId)!.delete(socket.id);
+      socket.leave(resolvedRoomId);
+      removeRoomUser(resolvedRoomId, socket.id);
+      clearUserTyping(resolvedRoomId, user.userId);
 
-        socket.to(roomId).emit("user_left", { userId: user.userId, username: user.username, roomId });
-
-        const onlineUsers = Array.from(roomUsers.get(roomId)!.values());
-        io.to(roomId).emit("online_users", { roomId, users: onlineUsers });
-
-        if (roomUsers.get(roomId)!.size === 0) {
-          roomUsers.delete(roomId);
-        }
-
-        clearUserTyping(roomId, user.userId);
-      }
+      socket.to(resolvedRoomId).emit("user_left", { userId: user.userId, username: user.username, roomId: resolvedRoomId });
+      io.to(resolvedRoomId).emit("online_users", { roomId: resolvedRoomId, users: getRoomUsers(resolvedRoomId) });
     });
 
     socket.on("send_message", async ({ roomId, content, type, attachment_url }, ack) => {
       try {
-        if (!user?.userId) return ack?.({ ok: false, error: "UNAUTHORIZED" });
-
-        const access = await ensureUserInRoom(user.userId, roomId);
-        if (!access.ok) {
-          return ack?.({ ok: false, error: access.error, message: accessError(access.error) });
-        }
-
-        const resolvedRoomId = access.roomId;
-
         const result = await createMessage({
           userId: user.userId,
-          roomId: resolvedRoomId,
+          roomId,
           content,
           type,
           attachmentUrl: attachment_url,
@@ -117,9 +105,11 @@ export const setupSocketIO = (io: Server<ClientToServerEvents, ServerToClientEve
           return ack?.({ ok: false, error: result.error, message: accessError(result.error) });
         }
 
+        const resolvedRoomId = result.message.roomId;
+        socket.data.roomCache.set(roomId, resolvedRoomId);
+
         clearUserTyping(resolvedRoomId, user.userId);
         socket.to(resolvedRoomId).emit("user_stopped_typing", { userId: user.userId, roomId: resolvedRoomId });
-
         io.to(resolvedRoomId).emit("receive_message", { ...result.message, roomId: resolvedRoomId });
 
         ack?.({ ok: true, messageId: result.message.id });
@@ -130,60 +120,35 @@ export const setupSocketIO = (io: Server<ClientToServerEvents, ServerToClientEve
     });
 
     socket.on("typing_start", async ({ roomId }) => {
-      if (!user?.userId) return;
+      const resolvedRoomId = await resolveRoomId(socket, roomId);
+      if (!resolvedRoomId) return;
 
-      try {
-        const access = await ensureUserInRoom(user.userId, roomId);
-        if (!access.ok) return;
-
-        const resolvedRoomId = access.roomId;
-        setUserTyping(resolvedRoomId, user.userId);
-        socket.to(resolvedRoomId).emit("user_typing", {
-          userId: user.userId,
-          username: user.username || 'Anonymous',
-          roomId: resolvedRoomId,
-        });
-      } catch (error) {
-        console.error('[typing_start] Error:', error);
-      }
+      setUserTyping(resolvedRoomId, user.userId);
+      socket.to(resolvedRoomId).emit("user_typing", {
+        userId: user.userId,
+        username: user.username || 'Anonymous',
+        roomId: resolvedRoomId,
+      });
     });
 
     socket.on("typing_stop", async ({ roomId }) => {
-      if (!user?.userId) return;
+      const resolvedRoomId = await resolveRoomId(socket, roomId);
+      if (!resolvedRoomId) return;
 
-      try {
-        const access = await ensureUserInRoom(user.userId, roomId);
-        if (!access.ok) return;
-
-        const resolvedRoomId = access.roomId;
-        clearUserTyping(resolvedRoomId, user.userId);
-        socket.to(resolvedRoomId).emit("user_stopped_typing", {
-          userId: user.userId,
-          username: user.username || 'Anonymous',
-          roomId: resolvedRoomId,
-        });
-      } catch (error) {
-        console.error('[typing_stop] Error:', error);
-      }
+      clearUserTyping(resolvedRoomId, user.userId);
+      socket.to(resolvedRoomId).emit("user_stopped_typing", {
+        userId: user.userId,
+        username: user.username || 'Anonymous',
+        roomId: resolvedRoomId,
+      });
     });
 
     socket.on("disconnect", () => {
-      roomUsers.forEach((users, roomId) => {
-        if (users.has(socket.id) && user?.userId) {
-          users.delete(socket.id);
-
-          socket.to(roomId).emit("user_left", { userId: user.userId, username: user.username, roomId });
-
-          const onlineUsers = Array.from(users.values());
-          io.to(roomId).emit("online_users", { roomId, users: onlineUsers });
-
-          if (users.size === 0) {
-            roomUsers.delete(roomId);
-          }
-
-          clearUserTyping(roomId, user.userId);
-        }
-      });
+      for (const roomId of removeSocketEverywhere(socket.id)) {
+        clearUserTyping(roomId, user.userId);
+        socket.to(roomId).emit("user_left", { userId: user.userId, username: user.username, roomId });
+        io.to(roomId).emit("online_users", { roomId, users: getRoomUsers(roomId) });
+      }
     });
   });
 };

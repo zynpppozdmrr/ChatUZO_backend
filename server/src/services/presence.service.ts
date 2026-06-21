@@ -1,29 +1,43 @@
-import type { UserPresence, TypingUser } from "../types/Realtime/presence.js";
+import type { RoomUser, TypingUser } from "../types/Realtime/presence.js";
 
-const onlineUsers = new Map<string, UserPresence>();
+// roomId -> (socketId -> RoomUser)
+const roomUsers = new Map<string, Map<string, RoomUser>>();
+// `${roomId}:${userId}` -> timeout
 const typingUsers = new Map<string, NodeJS.Timeout>();
 
-export function addOnlineUser(socketId: string, userId: string, username?: string): void {
-  onlineUsers.set(socketId, { userId, username, socketId, lastSeen: new Date() });
-}
-
-export function removeOnlineUser(socketId: string): UserPresence | undefined {
-  const user = onlineUsers.get(socketId);
-  if (user) {
-    onlineUsers.delete(socketId);
+export function addRoomUser(roomId: string, socketId: string, userId: string, username: string): void {
+  if (!roomUsers.has(roomId)) {
+    roomUsers.set(roomId, new Map());
   }
-  return user;
+  roomUsers.get(roomId)!.set(socketId, { userId, username, socketId });
 }
 
-export function getOnlineUsersInRoom(roomId: string, roomSockets: Set<string>): UserPresence[] {
-  const users: UserPresence[] = [];
-  for (const socketId of roomSockets) {
-    const user = onlineUsers.get(socketId);
-    if (user) {
-      users.push(user);
+export function removeRoomUser(roomId: string, socketId: string): void {
+  const users = roomUsers.get(roomId);
+  if (!users) return;
+  users.delete(socketId);
+  if (users.size === 0) {
+    roomUsers.delete(roomId);
+  }
+}
+
+export function getRoomUsers(roomId: string): RoomUser[] {
+  const users = roomUsers.get(roomId);
+  return users ? Array.from(users.values()) : [];
+}
+
+// Removes a socket from every room it was in; returns the affected roomIds.
+export function removeSocketEverywhere(socketId: string): string[] {
+  const affected: string[] = [];
+  for (const [roomId, users] of roomUsers) {
+    if (users.delete(socketId)) {
+      affected.push(roomId);
+      if (users.size === 0) {
+        roomUsers.delete(roomId);
+      }
     }
   }
-  return users;
+  return affected;
 }
 
 export function setUserTyping(roomId: string, userId: string, username?: string): TypingUser {

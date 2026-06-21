@@ -1,4 +1,4 @@
-import { Socket } from "socket.io";
+import type { Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import { env } from "../../config/env.js";
 
@@ -14,17 +14,14 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: Error) => void
   try {
     const payload = jwt.verify(token, env.JWT_SECRET) as any;
 
-    const userId =
-      payload.userId ??
-      payload.id ??
-      payload.sub;
-
+    const userId = payload.userId ?? payload.id ?? payload.sub;
     if (!userId) {
       return next(new Error("AUTH_INVALID_PAYLOAD"));
     }
 
     socket.data.user = {
       userId: String(userId),
+      username: payload.username,
       role: payload.role ?? "USER",
     };
 
@@ -33,4 +30,3 @@ export const socketAuthMiddleware = (socket: Socket, next: (err?: Error) => void
     next(new Error("AUTH_INVALID_TOKEN"));
   }
 };
-
