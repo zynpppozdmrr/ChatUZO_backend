@@ -16,7 +16,7 @@ const server = http.createServer(app);
 //Böylece client http://localhost:PORT üzerinden hem HTTP hem socket bağlantısı kurabiliyor.
 const io = new Server(server, {
     cors: {
-        origin: "*", // Production'da env'den geliyor
+        origin: env.CLIENT_ORIGINS,
         methods: ["GET", "POST"],
         credentials: true
     }

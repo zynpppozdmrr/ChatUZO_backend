@@ -19,7 +19,7 @@ export const getMyProfile = async (req: AuthenticatedRequest, res: Response) => 
 export const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const user = await userService.getUserById(id);
+    const user = await userService.getPublicUserById(id);
     
     res.json(user);
   } catch (error: any) {

@@ -21,10 +21,6 @@ else
     exit 1
 fi
 
-# Generate Prisma Client (in case it's needed)
-echo "🔧 Generating Prisma Client..."
-npx prisma generate
-
 # Start the server
 echo "🎯 Starting server..."
-node dist/src/index.js
+node dist/index.js

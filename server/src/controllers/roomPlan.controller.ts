@@ -1,6 +1,7 @@
 // RoomPlan CRUD operations
 import type { Request, Response } from 'express';
 import type { CreateRoomPlanInput, UpdateRoomPlanInput } from '../schema/roomPlan.validation.js';
+import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { 
   createRoomPlan, 
   getAllRoomPlans, 
@@ -8,14 +9,6 @@ import {
   updateRoomPlan, 
   deleteRoomPlan 
 } from '../services/roomPlan.service.js';
-
-// Authenticated request type
-interface AuthenticatedRequest extends Request {
-  user?: {
-    userId: string;
-    platformRole: string;
-  };
-}
 
 // Sadece admin kullanıcılar plan oluşturabilir
 export const createRoomPlanController = async (req: AuthenticatedRequest, res: Response): Promise<void> => {

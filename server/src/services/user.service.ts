@@ -27,6 +27,24 @@ export const getUserById = async (userId: string) => {
   return user;
 };
 
+export const getPublicUserById = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      username: true,
+      avatarUrl: true,
+      createdAt: true,
+    }
+  });
+
+  if (!user) {
+    throw new Error('Kullanıcı bulunamadı.');
+  }
+
+  return user;
+};
+
 // Get all users (Admin only)
 export const getAllUsers = async () => {
   const users = await prisma.user.findMany({

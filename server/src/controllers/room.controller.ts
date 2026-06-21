@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import type { CreateRoomInput, UpdateRoomInput, AssignModeratorInput, ParticipantStatusInput } from '../schema/room.validation.js';
 import { createRoom, getRoomBySlug, getUserRooms, getPublicRooms, getRoomByApiKey, updateRoom, deleteRoom, assignModeratorRole, getRoomParticipants, muteParticipant, unmuteParticipant, banParticipant, unbanParticipant } from '../services/room.service.js';
 import { getRoomMessages } from '../services/message.service.js';
+import { ensureUserInRoom } from '../services/roomAccess.service.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 // Authenticated request type (JWT middleware sonrası)
 
@@ -251,7 +252,14 @@ export const getRoomParticipantsController = async (req: AuthenticatedRequest, r
 
     const { roomId } = req.params;
 
-    const result = await getRoomParticipants(roomId);
+    const access = await ensureUserInRoom(userId, roomId);
+    if (!access.ok) {
+      const status = access.error === 'ROOM_ACCESS_DENIED' || access.error === 'ROOM_BANNED' ? 403 : 404;
+      res.status(status).json({ message: access.error });
+      return;
+    }
+
+    const result = await getRoomParticipants(access.roomId);
 
     res.status(200).json(result);
   } catch (error: any) {

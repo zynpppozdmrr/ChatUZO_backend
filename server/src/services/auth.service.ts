@@ -6,7 +6,7 @@ import type { LoginRequestDto, LoginResponse } from '../types/Auth/login.type.js
 import type { AuthenticatedUser } from '../types/Auth/authenticatedUser.type.js';
 import { generateToken } from '../utils/jwt.js';
 
-const SALT_ROUNDS = 10;
+const SALT_ROUNDS = process.env.SALT_ROUNDS ? parseInt(process.env.SALT_ROUNDS) : 10;
 
 export const registerUser = async (data: RegisterRequestDto): Promise<RegisterResponse> => {
   const { email, username, password, birthdate, avatarUrl } = data;
