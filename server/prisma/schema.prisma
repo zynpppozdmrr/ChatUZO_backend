@@ -30,8 +30,9 @@ enum UserStatus {
 }
 
 enum RoomParticipantRole {
-  OWNER
-  MODERATOR
+  OWNER          // odayı oluşturan platform admini
+  ROOM_ADMIN     // o oda özelinde tam yetki (silme hariç)
+  ROOM_MODERATOR // o oda özelinde moderasyon (mute/ban)
   MEMBER
 }
 

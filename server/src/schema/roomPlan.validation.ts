@@ -1,16 +1,14 @@
 import { z } from 'zod';
 import { RoomPlanType } from '../../generated/prisma/enums.js';
 
-// Plan Features Schema
 const PlanFeaturesSchema = z.object({
   canUseGifs: z.boolean().optional(),
   customFonts: z.boolean().optional(),
   whiteLabel: z.boolean().optional(),
-  customDomains: z.number().optional(), // Kaç domain izin veriliyor
+  customDomains: z.number().optional(),
   apiAccess: z.boolean().optional(),
 }).optional();
 
-// Create RoomPlan Schema
 export const CreateRoomPlanSchema = z.object({
   name: z.nativeEnum(RoomPlanType),
   maxUsers: z.number().min(1).max(1000, "Maksimum kullanıcı sayısı 1-1000 arası olmalı"),
@@ -18,7 +16,6 @@ export const CreateRoomPlanSchema = z.object({
   features: PlanFeaturesSchema
 });
 
-// Update RoomPlan Schema
 export const UpdateRoomPlanSchema = z.object({
   maxUsers: z.number().min(1).max(1000).optional(),
   retentionDays: z.number().min(1).max(365).optional(),

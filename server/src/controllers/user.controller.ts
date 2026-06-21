@@ -1,40 +1,27 @@
-//Profile management
 import type { Request, Response } from 'express';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import * as userService from '../services/user.service.js';
 
-// GET /api/users/me - Kendi profilini getir
 export const getMyProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user!.id;
-    const user = await userService.getUserById(userId);
-    
+    const user = await userService.getUserById(req.user!.id);
     res.json(user);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Profil getirilirken bir hata oluştu.' });
   }
 };
 
-// GET /api/users/:id - Belirli kullanıcıyı getir
 export const getUserById = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const user = await userService.getPublicUserById(id);
-    
+    const user = await userService.getPublicUserById(req.params.id);
     res.json(user);
   } catch (error: any) {
     res.status(404).json({ error: error.message || 'Kullanıcı bulunamadı.' });
   }
 };
 
-// GET /api/users - Tüm kullanıcıları listele (Admin only)
-export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
+export const getAllUsers = async (_req: AuthenticatedRequest, res: Response) => {
   try {
-    // Admin kontrolü
-    if (req.user!.platformRole !== 'ADMIN') {
-      return res.status(403).json({ error: 'Bu işlem için admin yetkisi gereklidir.' });
-    }
-
     const users = await userService.getAllUsers();
     res.json(users);
   } catch (error: any) {
@@ -42,44 +29,28 @@ export const getAllUsers = async (req: AuthenticatedRequest, res: Response) => {
   }
 };
 
-// PUT /api/users/me - Kendi profilini güncelle
 export const updateMyProfile = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user!.id;
-    const updatedUser = await userService.updateUser(userId, req.body);
-    
+    const updatedUser = await userService.updateUser(req.user!.id, req.body);
     res.json(updatedUser);
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Profil güncellenirken bir hata oluştu.' });
   }
 };
 
-// PUT /api/users/:id/role - Kullanıcı rolünü değiştir (Admin only)
 export const changeUserRole = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // Admin kontrolü
-    if (req.user!.platformRole !== 'ADMIN') {
-      return res.status(403).json({ error: 'Bu işlem için admin yetkisi gereklidir.' });
-    }
-
-    const { id } = req.params;
-    const updatedUser = await userService.changeUserRole(id, req.body);
-    
+    const updatedUser = await userService.changeUserRole(req.params.id, req.body);
     res.json(updatedUser);
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Rol değiştirilirken bir hata oluştu.' });
   }
 };
 
-// DELETE /api/users/:id - Kullanıcıyı sil (Admin or own account)
 export const deleteUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { id } = req.params;
-    const requesterId = req.user!.id;
     const isAdmin = req.user!.platformRole === 'ADMIN';
-
-    const result = await userService.deleteUser(id, requesterId, isAdmin);
-    
+    const result = await userService.deleteUser(req.params.id, req.user!.id, isAdmin);
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Kullanıcı silinirken bir hata oluştu.' });

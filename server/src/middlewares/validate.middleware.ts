@@ -4,7 +4,6 @@ import type { ZodSchema, ZodError } from 'zod';
 export const validate = (schema: ZodSchema) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      // Body'yi validate et ve parse edilmiş haliyle geri yaz
       req.body = await schema.parseAsync(req.body);
       next();
     } catch (error) {
@@ -19,8 +18,7 @@ export const validate = (schema: ZodSchema) => {
         });
         return;
       }
-      
-      // Beklenmedik hata
+
       res.status(500).json({
         message: 'Validation sırasında bir hata oluştu.'
       });

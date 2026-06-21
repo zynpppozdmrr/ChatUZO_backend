@@ -22,7 +22,6 @@ export const CreateRoomSchema = z.object({
 
 export type CreateRoomInput = z.infer<typeof CreateRoomSchema>;
 
-// Update Room Schema (tüm alanlar opsiyonel)
 export const UpdateRoomSchema = z.object({
   name: z.string().min(2, "Oda adı çok kısa").max(100).optional(),
   isPrivate: z.boolean().optional(),
@@ -35,15 +34,12 @@ export const UpdateRoomSchema = z.object({
 
 export type UpdateRoomInput = z.infer<typeof UpdateRoomSchema>;
 
-// Moderator Assignment Schema
-export const AssignModeratorSchema = z.object({
-  participantId: z.string().uuid("Geçersiz Katılımcı ID"),
-  isModerator: z.boolean().default(true),
+export const AssignRoomRoleSchema = z.object({
+  role: z.enum(['ROOM_ADMIN', 'ROOM_MODERATOR', 'MEMBER']),
 });
 
-export type AssignModeratorInput = z.infer<typeof AssignModeratorSchema>;
+export type AssignRoomRoleInput = z.infer<typeof AssignRoomRoleSchema>;
 
-// Participant Status Schema (Mute/Ban)
 export const ParticipantStatusSchema = z.object({
   status: z.enum(['ACTIVE', 'MUTED', 'BANNED']),
 });

@@ -1,11 +1,9 @@
-// Business logic for RoomPlan operations
 import { prisma } from '../config/prisma.js';
 import type { CreateRoomPlanInput, UpdateRoomPlanInput } from '../schema/roomPlan.validation.js';
 
 export const createRoomPlan = async (data: CreateRoomPlanInput) => {
   const { name, maxUsers, retentionDays, features } = data;
 
-  // Plan adı benzersiz olmalı
   const existingPlan = await prisma.roomPlan.findUnique({
     where: { name }
   });
@@ -99,7 +97,6 @@ export const deleteRoomPlan = async (id: string) => {
     throw new Error('Plan bulunamadı.');
   }
 
-  // Eğer bu plana bağlı odalar varsa silinemez
   if (plan._count.rooms > 0) {
     throw new Error(`Bu plana bağlı ${plan._count.rooms} oda bulunmaktadır. Önce bu odaları silmelisiniz.`);
   }

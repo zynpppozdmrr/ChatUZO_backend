@@ -88,7 +88,7 @@
 			"name": "Rooms",
 			"item": [
 				{
-					"name": "Create Room",
+					"name": "Create Room (Admin only)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -104,7 +104,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Test Chat Room\",\n  \"slug\": \"test-chat-room\",\n  \"isPrivate\": false,\n  \"maxUsers\": 50,\n  \"allowedDomains\": [\"https://example.com\"],\n  \"uiSettings\": {\n    \"theme\": \"dark\",\n    \"primaryColor\": \"#6366f1\",\n    \"bgType\": \"color\",\n    \"bgValue\": \"#1f2937\",\n    \"bubbleStyle\": \"rounded\",\n    \"fontSettings\": {\n      \"family\": \"Inter\",\n      \"baseSize\": 14,\n      \"weight\": \"medium\"\n    },\n    \"headerTitle\": \"Welcome to Test Room\",\n    \"showBranding\": true\n  },\n  \"logicConfig\": {\n    \"slowMode\": 0,\n    \"allowGifs\": true,\n    \"profanityFilter\": false,\n    \"guestAccess\": true,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"Welcome! Please be respectful.\",\n    \"historyRetentionDays\": 30\n  },\n  \"roomPlanId\": \"{{plan_id}}\"\n}"
+							"raw": "{\n  \"name\": \"Test Chat Room\",\n  \"slug\": \"test-chat-room\",\n  \"isPrivate\": false,\n  \"allowedDomains\": [\"https://example.com\"],\n  \"uiSettings\": {\n    \"theme\": \"dark\",\n    \"primaryColor\": \"#6366f1\",\n    \"bgType\": \"color\",\n    \"bgValue\": \"#1f2937\",\n    \"bubbleStyle\": \"rounded\",\n    \"fontSettings\": {\n      \"family\": \"Inter\",\n      \"baseSize\": 14,\n      \"weight\": \"medium\"\n    },\n    \"headerTitle\": \"Welcome to Test Room\",\n    \"showBranding\": true\n  },\n  \"logicConfig\": {\n    \"slowMode\": 0,\n    \"allowGifs\": true,\n    \"profanityFilter\": false,\n    \"guestAccess\": true,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"Welcome! Please be respectful.\",\n    \"historyRetentionDays\": 30\n  },\n  \"roomPlanId\": \"{{plan_id}}\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/rooms",
@@ -202,7 +202,7 @@
 					"response": []
 				},
 				{
-					"name": "Create Private Room",
+					"name": "Create Private Room (Admin only)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -218,7 +218,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Private VIP Room\",\n  \"slug\": \"private-vip-room\",\n  \"isPrivate\": true,\n  \"password\": \"SecretPass123\",\n  \"maxUsers\": 20,\n  \"allowedDomains\": [\"https://vip.example.com\"],\n  \"uiSettings\": {\n    \"theme\": \"dark\",\n    \"primaryColor\": \"#f59e0b\",\n    \"bgType\": \"gradient\",\n    \"bgValue\": \"linear-gradient(135deg, #667eea 0%, #764ba2 100%)\",\n    \"bubbleStyle\": \"modern\",\n    \"fontSettings\": {\n      \"family\": \"Roboto\",\n      \"baseSize\": 16,\n      \"weight\": \"bold\"\n    },\n    \"headerTitle\": \"VIP Members Only\",\n    \"showBranding\": false\n  },\n  \"logicConfig\": {\n    \"slowMode\": 5,\n    \"allowGifs\": false,\n    \"profanityFilter\": true,\n    \"guestAccess\": false,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"VIP Room - Invite Only\",\n    \"historyRetentionDays\": 90\n  },\n  \"roomPlanId\": \"{{plan_id}}\"\n}"
+							"raw": "{\n  \"name\": \"Private VIP Room\",\n  \"slug\": \"private-vip-room\",\n  \"isPrivate\": true,\n  \"password\": \"SecretPass123\",\n  \"allowedDomains\": [\"https://vip.example.com\"],\n  \"uiSettings\": {\n    \"theme\": \"dark\",\n    \"primaryColor\": \"#f59e0b\",\n    \"bgType\": \"gradient\",\n    \"bgValue\": \"linear-gradient(135deg, #667eea 0%, #764ba2 100%)\",\n    \"bubbleStyle\": \"modern\",\n    \"fontSettings\": {\n      \"family\": \"Roboto\",\n      \"baseSize\": 16,\n      \"weight\": \"bold\"\n    },\n    \"headerTitle\": \"VIP Members Only\",\n    \"showBranding\": false\n  },\n  \"logicConfig\": {\n    \"slowMode\": 5,\n    \"allowGifs\": false,\n    \"profanityFilter\": true,\n    \"guestAccess\": false,\n    \"showTyping\": true,\n    \"readReceipts\": true,\n    \"stickyMessage\": \"VIP Room - Invite Only\",\n    \"historyRetentionDays\": 90\n  },\n  \"roomPlanId\": \"{{plan_id}}\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/rooms",
@@ -305,6 +305,245 @@
 							]
 						},
 						"description": "Odayı siler. Bu işlem cascade delete yapar (participants ve messages de silinir). Sadece oda sahibi veya ADMIN silebilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Room Participants",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:roomId/participants",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":roomId",
+								"participants"
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "{{room_id}}",
+									"description": "Room UUID or slug"
+								}
+							]
+						},
+						"description": "Odanın katılımcılarını listeler. Katılımcı erişimi gerekir."
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Room Role (Owner/RoomAdmin)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"role\": \"ROOM_MODERATOR\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:roomId/participants/:userId/role",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":roomId",
+								"participants",
+								":userId",
+								"role"
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "{{room_id}}",
+									"description": "Room UUID"
+								},
+								{
+									"key": "userId",
+									"value": "{{target_user_id}}",
+									"description": "Target participant user UUID"
+								}
+							]
+						},
+						"description": "Katılımcıya oda-içi rol atar: ROOM_ADMIN, ROOM_MODERATOR veya MEMBER. Sadece OWNER, ROOM_ADMIN veya platform ADMIN yapabilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Mute Participant (Moderation)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:roomId/participants/:userId/mute",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":roomId",
+								"participants",
+								":userId",
+								"mute"
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "{{room_id}}"
+								},
+								{
+									"key": "userId",
+									"value": "{{target_user_id}}"
+								}
+							]
+						},
+						"description": "Katılımcıyı susturur. OWNER, ROOM_ADMIN, ROOM_MODERATOR veya platform ADMIN yapabilir (kendiyle eşit/üst rütbe hedeflenemez)."
+					},
+					"response": []
+				},
+				{
+					"name": "Unmute Participant (Moderation)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:roomId/participants/:userId/unmute",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":roomId",
+								"participants",
+								":userId",
+								"unmute"
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "{{room_id}}"
+								},
+								{
+									"key": "userId",
+									"value": "{{target_user_id}}"
+								}
+							]
+						},
+						"description": "Katılımcının susturmasını kaldırır."
+					},
+					"response": []
+				},
+				{
+					"name": "Ban Participant (Moderation)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:roomId/participants/:userId/ban",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":roomId",
+								"participants",
+								":userId",
+								"ban"
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "{{room_id}}"
+								},
+								{
+									"key": "userId",
+									"value": "{{target_user_id}}"
+								}
+							]
+						},
+						"description": "Katılımcıyı odadan banlar. OWNER, ROOM_ADMIN, ROOM_MODERATOR veya platform ADMIN yapabilir."
+					},
+					"response": []
+				},
+				{
+					"name": "Unban Participant (Moderation)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/rooms/:roomId/participants/:userId/unban",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"rooms",
+								":roomId",
+								"participants",
+								":userId",
+								"unban"
+							],
+							"variable": [
+								{
+									"key": "roomId",
+									"value": "{{room_id}}"
+								},
+								{
+									"key": "userId",
+									"value": "{{target_user_id}}"
+								}
+							]
+						},
+						"description": "Katılımcının banını kaldırır."
 					},
 					"response": []
 				}
@@ -753,7 +992,7 @@
 	"variable": [
 		{
 			"key": "base_url",
-			"value": "http://localhost:3000",
+			"value": "https://your-api-host.example.com",
 			"type": "string"
 		}
 	]

@@ -21,21 +21,26 @@ export const authenticate = (req: AuthenticatedRequest, res: Response, next: Nex
       return;
     }
 
-    const token = authHeader.substring(7); // "Bearer " kısmını çıkar
+    const payload = verifyToken(authHeader.substring(7));
 
-    const payload = verifyToken(token);
-
-    // Request objesine kullanıcı bilgilerini ekle
     req.user = {
       id: payload.sub,
       email: payload.email,
       username: payload.username,
       platformRole: payload.role as 'USER' | 'ADMIN',
-      status: 'ACTIVE' as const
+      status: 'ACTIVE' as const,
     };
 
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ message: 'Geçersiz veya süresi dolmuş token.' });
   }
+};
+
+export const requireAdmin = (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
+  if (req.user?.platformRole !== 'ADMIN') {
+    res.status(403).json({ message: 'Bu işlem için admin yetkisi gereklidir.' });
+    return;
+  }
+  next();
 };

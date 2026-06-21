@@ -23,7 +23,6 @@ app.get('/readyz', async (_req, res) => {
 	}
 });
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/room-plans', roomPlanRoutes);

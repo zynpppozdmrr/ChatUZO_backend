@@ -6,7 +6,7 @@
 Modern web applications often require integrated real-time communication features. However, building a scalable, secure, and feature-rich chat system from scratch is complex. Developers face challenges such as:
 *   **Scalability:** Handling thousands of concurrent connections.
 *   **Multi-tenancy:** Managing isolated chat rooms for different communities or businesses.
-*   **Access Control:** Implementing granular permissions (Admin, Moderator, Member).
+*   **Access Control:** Granular two-layer RBAC (platform Admin/User + per-room Owner/RoomAdmin/RoomModerator/Member).
 *   **Integration:** Embedding chat widgets into existing websites easily.
 
 ### Project Motivation
@@ -186,7 +186,7 @@ erDiagram
     RoomParticipant {
         uuid userId FK
         uuid roomId FK
-        enum role "OWNER, MODERATOR, MEMBER"
+        enum role "OWNER, ROOM_ADMIN, ROOM_MODERATOR, MEMBER"
     }
 
     Message {
@@ -230,13 +230,22 @@ erDiagram
 #### 2. Rooms (`/api/rooms`)
 | Method | Endpoint | Description | Access |
 |:-------|:---------|:------------|:-------|
-| `POST` | `/` | Create a new chat room. | Auth |
-| `GET` | `/my-rooms` | List rooms owned/joined by user. | Auth |
+| `POST` | `/` | Create a new chat room. | **Platform Admin only** |
+| `GET` | `/my-rooms` | List rooms owned by user. | Auth |
+| `GET` | `/public` | List public (non-private) rooms. | Auth |
 | `GET` | `/:slug` | Get public room info by slug. | Public |
 | `GET` | `/api-key/:apiKey` | Get room info for external integration. | Public |
-| `GET` | `/:roomId/messages` | Fetch chat history. | Auth |
-| `PUT` | `/:id` | Update room settings. | Owner/Admin |
-| `DELETE` | `/:id` | Delete a room. | Owner/Admin |
+| `GET` | `/:roomId/messages` | Fetch chat history (paginated). | Auth (room access) |
+| `GET` | `/:roomId/participants` | List room participants. | Auth (room access) |
+| `PATCH` | `/:roomId/participants/:userId/role` | Assign per-room role (`ROOM_ADMIN`/`ROOM_MODERATOR`/`MEMBER`). | Owner / ROOM_ADMIN / Admin |
+| `PATCH` | `/:roomId/participants/:userId/mute` | Mute a participant. | Owner / ROOM_ADMIN / ROOM_MODERATOR / Admin |
+| `PATCH` | `/:roomId/participants/:userId/unmute` | Unmute a participant. | Owner / ROOM_ADMIN / ROOM_MODERATOR / Admin |
+| `PATCH` | `/:roomId/participants/:userId/ban` | Ban a participant. | Owner / ROOM_ADMIN / ROOM_MODERATOR / Admin |
+| `PATCH` | `/:roomId/participants/:userId/unban` | Unban a participant. | Owner / ROOM_ADMIN / ROOM_MODERATOR / Admin |
+| `PUT` | `/:id` | Update room settings. | Owner / ROOM_ADMIN / Admin |
+| `DELETE` | `/:id` | Delete a room. | Owner / Admin |
+
+> **Note:** Only platform admins can create rooms. The creating admin becomes the room `OWNER`. Within a room, an owner (or platform admin) can grant `ROOM_ADMIN` or `ROOM_MODERATOR` roles to other participants. Moderation actions are blocked against participants of an equal or higher role.
 
 **Example Create Room Request:**
 ```json
@@ -245,12 +254,16 @@ erDiagram
   "slug": "tech-talk-2024",
   "isPrivate": true,
   "password": "roompassword",
-  "maxUsers": 50,
   "roomPlanId": "uuid-of-plan",
   "allowedDomains": ["https://mysite.com"],
   "uiSettings": { "theme": "dark" },
   "logicConfig": { "allowGifs": true }
 }
+```
+
+**Example Assign Role Request** (`PATCH /:roomId/participants/:userId/role`):
+```json
+{ "role": "ROOM_MODERATOR" }
 ```
 
 #### 3. Room Plans (`/api/room-plans`)
@@ -431,13 +444,15 @@ export const RegisterSchema = z.object({
 });
 
 // Create Room Schema - From room.validation.ts
+// Note: maxUsers is NOT part of this schema; it is taken from the selected plan.
 export const CreateRoomSchema = z.object({
   name: z.string().min(2).max(100),
   slug: z.string().regex(/^[a-z0-9-]+$/, "Lowercase, numbers, hyphens only"),
   isPrivate: z.boolean(),
   password: z.string().optional(),
-  maxUsers: z.number().int().positive(),
   allowedDomains: z.array(z.string().url()).min(1),
+  uiSettings: UISettingsSchema,
+  logicConfig: LogicConfigSchema,
   roomPlanId: z.string().uuid()
 }).refine(data => {
   if (data.isPrivate && !data.password) return false;
@@ -589,38 +604,35 @@ if (isValid) {
 
 ### 4. **Authorization & Role-Based Access Control (RBAC)**
 
-**User Roles:**
-*   **USER:** Regular user. Can create rooms, send messages.
-*   **ADMIN:** Platform administrator. Can manage plans, promote/demote users.
+RBAC is enforced on two layers.
 
-**Room Participant Roles:**
-*   **OWNER:** Created the room. Full control.
-*   **MODERATOR:** Can delete messages, mute members.
-*   **MEMBER:** Can only read and send messages.
+**Layer 1 — Platform Roles (`platformRole`):**
+*   **USER:** Regular user. Can join rooms and send messages. **Cannot create rooms.**
+*   **ADMIN:** Platform administrator. Can create rooms, manage plans, promote/demote users, and override any room.
 
-**Example RBAC:**
+Enforced via the `authenticate` (JWT) and `requireAdmin` middlewares at the route level.
+
+**Layer 2 — Per-Room Participant Roles (`RoomParticipant.role`):**
+*   **OWNER:** The platform admin who created the room. Full control.
+*   **ROOM_ADMIN:** Granted per-room. Can update room settings, mute/ban, and assign roles. **Cannot delete the room.**
+*   **ROOM_MODERATOR:** Granted per-room. Can mute/ban participants only.
+*   **MEMBER:** Default. Read and send messages.
+
+A numeric rank (`OWNER=3 > ROOM_ADMIN=2 > ROOM_MODERATOR=1 > MEMBER=0`, platform admin = ∞) governs who may act on whom: a moderator can never act on an equal-or-higher role, and `OWNER` can never be targeted.
+
+**Example RBAC (route-level + service rank check):**
 ```typescript
-// Only OWNER can delete room
-export const deleteRoom = async (req: AuthenticatedRequest, res: Response) => {
-  const roomId = req.params.id;
-  const userId = req.user?.id;
-  
-  const room = await db.room.findUnique({ where: { id: roomId } });
-  
-  if (room.ownerId !== userId) {
-    return res.status(403).json({ message: "Only room owner can delete" });
-  }
-  
-  await db.room.delete({ where: { id: roomId } });
-};
+// Only platform admins can create rooms
+router.post('/', authenticate, requireAdmin, validate(CreateRoomSchema), createRoomController);
 
-// Only ADMIN can create plans
-router.post('/room-plans', authenticate, (req, res) => {
-  if (req.user?.platformRole !== 'ADMIN') {
-    return res.status(403).json({ message: "Admin only" });
-  }
-  // ...
-});
+// Moderation requires sufficient room rank AND outranking the target
+const requesterRank = await getRequesterRank(roomId, room.ownerId, requestingUserId, isAdmin);
+if (requesterRank < ROLE_RANK.ROOM_MODERATOR) {
+  throw new Error('Bu işlemi gerçekleştirme yetkiniz yok.');
+}
+if (requesterRank <= rankOf(participant.role)) {
+  throw new Error('Bu katılımcıya işlem uygulama yetkiniz yok.');
+}
 ```
 
 ### 5. **API Key Security**
@@ -891,14 +903,16 @@ pm.request.headers.add({
 });
 ```
 
-#### Step 3: Create a Room
+#### Step 3: Create a Room (Platform Admin only)
 **Endpoint:** `POST {{BASE_URL}}/rooms`
 
 **Headers:**
 ```
-Authorization: Bearer {{JWT_TOKEN}}
+Authorization: Bearer {{ADMIN_JWT_TOKEN}}
 Content-Type: application/json
 ```
+
+> `maxUsers` is derived automatically from the selected `roomPlanId` and is not accepted in the create body.
 
 **Request Body:**
 ```json
@@ -906,7 +920,6 @@ Content-Type: application/json
   "name": "Tech Discussion",
   "slug": "tech-discussion-2025",
   "isPrivate": false,
-  "maxUsers": 100,
   "allowedDomains": ["https://myapp.com"],
   "roomPlanId": "plan-uuid-here",
   "uiSettings": {

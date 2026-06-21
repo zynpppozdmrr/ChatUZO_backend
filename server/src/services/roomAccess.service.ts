@@ -12,33 +12,25 @@ export async function ensureUserInRoom(userId: string, roomIdOrSlug: string) {
 
   if (!room) return { ok: false as const, error: "ROOM_NOT_FOUND" };
 
-  const roomId = room.id; // Resolved UUID
+  const roomId = room.id;
 
   let participant = await prisma.roomParticipant.findUnique({
     where: { roomId_userId: { roomId, userId } },
     select: { role: true, status: true },
   });
 
-  // Banlanmış kullanıcı = başarısız
   if (participant && participant.status === "BANNED") {
     return { ok: false as const, error: "ROOM_BANNED" };
   }
 
-  // If not a participant, check if room is public and auto-join
   if (!participant) {
     if (!room.isPrivate) {
       try {
         participant = await prisma.roomParticipant.create({
-          data: {
-            roomId,
-            userId,
-            role: "MEMBER",
-            status: "ACTIVE",
-          },
+          data: { roomId, userId, role: "MEMBER", status: "ACTIVE" },
           select: { role: true, status: true },
         });
       } catch (error) {
-        // Handle race condition where user might have joined concurrently
         console.error("Auto-join failed:", error);
         return { ok: false as const, error: "JOIN_FAILED" };
       }
